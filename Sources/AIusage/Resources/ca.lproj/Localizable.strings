@@ -1,0 +1,87 @@
+"app.name" = "AIusage";
+"icon.usage" = "Ús de Codex";
+
+"action.settings" = "Ajustos";
+"action.about" = "Informació";
+"action.login" = "Inicia sessió";
+"action.refresh" = "Actualitza ara";
+"action.openUsage" = "Obre Usage";
+"action.close" = "Tanca";
+"action.choose" = "Tria…";
+"action.select" = "Selecciona";
+"action.logout" = "Tanca la sessió";
+
+"error.codexNotFound" = "No s'ha trobat l'executable de Codex.";
+"error.serverNotRunning" = "L'app-server de Codex no s'està executant.";
+"error.processExited" = "L'app-server de Codex s'ha aturat.";
+"error.malformedMessage" = "Codex ha retornat una resposta no vàlida.";
+"error.requestTimedOut" = "Codex no ha respost a temps.";
+"error.loginURLMissing" = "Codex no ha proporcionat cap URL d'inici de sessió.";
+"error.browserOpen" = "No s'ha pogut obrir el navegador.";
+"error.unknownCodex" = "Error desconegut de Codex.";
+"error.loginFailed" = "L'inici de sessió ha fallat.";
+
+"popover.codexNotFound.title" = "No s'ha trobat Codex";
+"popover.codexNotFound.message" = "Instal·la Codex o configura'n la ruta des d'Ajustos.";
+"popover.login.title" = "Inicia sessió a ChatGPT";
+"popover.login.message" = "S'obrirà el flux oficial d'autenticació de Codex.";
+"popover.stale" = "Dades antigues: %@";
+"popover.connecting" = "Connectant amb Codex…";
+
+"window.fiveHours" = "5 hores";
+"window.weekly" = "Setmanal";
+"window.other" = "Una altra finestra (%d min)";
+"window.used" = "%d%% utilitzat";
+"window.remaining" = "%d%% restant";
+"window.reset" = "Restabliment: %@";
+
+"reset.available" = "Restabliments disponibles";
+"reset.detailsMissing" = "Codex no n'ha proporcionat els detalls.";
+"reset.none" = "No hi ha restabliments desats disponibles.";
+"reset.expires" = "Caduca: %@";
+"reset.expiringSoon" = "Caduca aviat";
+"reset.noExpiry" = "No se n'indica la caducitat";
+"reset.usage" = "Restabliment d'ús";
+"reset.summary.unknown" = "sense data coneguda";
+"reset.summary.days" = "d'aquí a %d d %d h";
+"reset.summary.hours" = "d'aquí a %d h %d min";
+"reset.summary.minutes" = "d'aquí a %d min";
+
+"usage.tokens" = "Ús de tokens";
+"usage.daily" = "Diari";
+"usage.weekly" = "Setmanal";
+"usage.cumulative" = "Acumulat";
+"usage.noData" = "No hi ha dades d'ús de tokens disponibles.";
+"usage.less" = "Menys";
+"usage.more" = "Més";
+
+"state.starting" = "Iniciant…";
+"state.needsCodex" = "No s'ha trobat Codex";
+"state.needsLogin" = "Cal iniciar sessió";
+"state.connecting" = "Connectant…";
+"state.ready" = "Connectat";
+"state.stale" = "Dades antigues";
+"status.updated" = "Actualitzat %@";
+
+"notification.highUsage" = "Ús alt de Codex";
+"notification.unknownUsage" = "Ús desconegut";
+"notification.body" = "%@: %@. Es restableix %@.";
+
+"settings.windowTitle" = "AIusage — Ajustos";
+"settings.section.codex" = "Codex";
+"settings.path" = "Ruta del binari";
+"settings.savePath" = "Desa la ruta";
+"settings.section.behavior" = "Comportament";
+"settings.launchAtLogin" = "Inicia amb macOS";
+"settings.notify" = "Notifica en superar el 90%";
+"settings.showPercentages" = "Mostra els percentatges a la barra";
+"settings.showFiveHourPercentage" = "Mostra el percentatge de 5 h a la barra";
+"settings.showWeeklyPercentage" = "Mostra el percentatge setmanal a la barra";
+"settings.update" = "Actualització";
+"settings.updateValue" = "Cada 60 segons";
+"settings.section.account" = "Compte";
+"settings.chatgptAccount" = "Compte de ChatGPT";
+"about.windowTitle" = "AIusage — Informació";
+"about.versionLabel" = "Versió";
+"about.description" = "Consulta l'ús de Codex directament des de la barra de menús.";
+"about.platform" = "Plataforma";

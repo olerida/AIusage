@@ -1,0 +1,87 @@
+"app.name" = "AIusage";
+"icon.usage" = "Uso de Codex";
+
+"action.settings" = "Ajustes";
+"action.about" = "Información";
+"action.login" = "Iniciar sesión";
+"action.refresh" = "Actualizar ahora";
+"action.openUsage" = "Abrir Usage";
+"action.close" = "Cerrar";
+"action.choose" = "Elegir…";
+"action.select" = "Seleccionar";
+"action.logout" = "Cerrar sesión";
+
+"error.codexNotFound" = "No se ha encontrado el ejecutable de Codex.";
+"error.serverNotRunning" = "El app-server de Codex no está ejecutándose.";
+"error.processExited" = "El app-server de Codex se ha detenido.";
+"error.malformedMessage" = "Codex ha devuelto una respuesta no válida.";
+"error.requestTimedOut" = "Codex no ha respondido a tiempo.";
+"error.loginURLMissing" = "Codex no ha proporcionado una URL de inicio de sesión.";
+"error.browserOpen" = "No se ha podido abrir el navegador.";
+"error.unknownCodex" = "Error desconocido de Codex.";
+"error.loginFailed" = "El inicio de sesión ha fallado.";
+
+"popover.codexNotFound.title" = "Codex no encontrado";
+"popover.codexNotFound.message" = "Instala Codex o configura su ruta desde Ajustes.";
+"popover.login.title" = "Inicia sesión en ChatGPT";
+"popover.login.message" = "Se abrirá el flujo oficial de autenticación de Codex.";
+"popover.stale" = "Datos antiguos: %@";
+"popover.connecting" = "Conectando con Codex…";
+
+"window.fiveHours" = "5 horas";
+"window.weekly" = "Semanal";
+"window.other" = "Otra ventana (%d min)";
+"window.used" = "%d%% usado";
+"window.remaining" = "%d%% restante";
+"window.reset" = "Reset: %@";
+
+"reset.available" = "Resets disponibles";
+"reset.detailsMissing" = "Codex no ha proporcionado los detalles.";
+"reset.none" = "No hay resets guardados disponibles.";
+"reset.expires" = "Caduca: %@";
+"reset.expiringSoon" = "Caduca pronto";
+"reset.noExpiry" = "Sin caducidad indicada";
+"reset.usage" = "Reset de uso";
+"reset.summary.unknown" = "sin fecha conocida";
+"reset.summary.days" = "en %dd %dh";
+"reset.summary.hours" = "en %dh %dm";
+"reset.summary.minutes" = "en %dm";
+
+"usage.tokens" = "Uso de tokens";
+"usage.daily" = "Diario";
+"usage.weekly" = "Semanal";
+"usage.cumulative" = "Acumulado";
+"usage.noData" = "No hay datos de tokens disponibles.";
+"usage.less" = "Menos";
+"usage.more" = "Más";
+
+"state.starting" = "Iniciando…";
+"state.needsCodex" = "Codex no encontrado";
+"state.needsLogin" = "Inicio de sesión necesario";
+"state.connecting" = "Conectando…";
+"state.ready" = "Conectado";
+"state.stale" = "Datos antiguos";
+"status.updated" = "Actualizado %@";
+
+"notification.highUsage" = "Uso alto de Codex";
+"notification.unknownUsage" = "Uso desconocido";
+"notification.body" = "%@: %@. Se restablece %@.";
+
+"settings.windowTitle" = "AIusage — Ajustes";
+"settings.section.codex" = "Codex";
+"settings.path" = "Ruta del binario";
+"settings.savePath" = "Guardar ruta";
+"settings.section.behavior" = "Comportamiento";
+"settings.launchAtLogin" = "Iniciar con macOS";
+"settings.notify" = "Notificar al superar el 90%";
+"settings.showPercentages" = "Mostrar porcentajes en la barra";
+"settings.showFiveHourPercentage" = "Mostrar porcentaje de 5 h en la barra";
+"settings.showWeeklyPercentage" = "Mostrar porcentaje semanal en la barra";
+"settings.update" = "Actualización";
+"settings.updateValue" = "Cada 60 segundos";
+"settings.section.account" = "Cuenta";
+"settings.chatgptAccount" = "Cuenta ChatGPT";
+"about.windowTitle" = "AIusage — Información";
+"about.versionLabel" = "Versión";
+"about.description" = "Consulta el uso de Codex directamente desde la barra de menús.";
+"about.platform" = "Plataforma";
