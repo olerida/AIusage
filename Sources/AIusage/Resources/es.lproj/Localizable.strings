@@ -1,4 +1,6 @@
 "app.name" = "AIusage";
+"app.displayName" = "AI usage";
+"agent.codex" = "Codex";
 "icon.usage" = "Uso de Codex";
 
 "action.settings" = "Ajustes";
@@ -81,7 +83,9 @@
 "settings.updateValue" = "Cada 60 segundos";
 "settings.section.account" = "Cuenta";
 "settings.chatgptAccount" = "Cuenta ChatGPT";
-"about.windowTitle" = "AIusage — Información";
+"about.windowTitle" = "AI usage — Información";
 "about.versionLabel" = "Versión";
+"about.developer" = "Desarrollador";
+"about.githubRepository" = "GitHub";
 "about.description" = "Consulta el uso de Codex directamente desde la barra de menús.";
 "about.platform" = "Plataforma";

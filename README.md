@@ -2,7 +2,7 @@
 
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-111111?logo=apple)
 ![Swift 5.9](https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white)
-![Version](https://img.shields.io/badge/version-v1.0.0-0A84FF)
+![Version](https://img.shields.io/badge/version-v1.0.1-0A84FF)
 ![License](https://img.shields.io/badge/license-MIT-34C759)
 
 <p align="center">
@@ -37,6 +37,18 @@ The app does not consume reset credits and does not read the credentials, logs, 
 - macOS 14 Sonoma or later.
 - Codex CLI installed and available as `codex`.
 - Xcode 15 or later to build from source.
+
+## Install
+
+### Homebrew
+
+```bash
+brew install --cask olerida/tap/aiusage
+```
+
+### Direct download
+
+Download the latest signed ZIP from [GitHub Releases](https://github.com/olerida/AIusage/releases/latest), extract it, and move `AIusage.app` to Applications.
 
 ## Build and test
 
@@ -80,7 +92,7 @@ Scripts/                 Packaging, signing, and notarization helpers
 
 ## Release
 
-The current release is **v1.0.0**. Version tags matching `v*` run the test suite, build the universal app, and publish the ZIP through GitHub Actions.
+The current release is **v1.0.1**. Version tags matching `v*` run the test suite, build the universal app, and publish the ZIP through GitHub Actions. The Homebrew cask is maintained separately in `~/Documents/homebrew-tap`.
 
 ## License
 

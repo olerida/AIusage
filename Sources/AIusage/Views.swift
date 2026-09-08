@@ -98,7 +98,7 @@ struct UsagePopoverView: View {
     private var header: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(L10n.string("app.name"))
+                Text(L10n.string("agent.codex"))
                     .font(.headline)
                 if let account = store.account {
                     Text([account.email, account.planType?.uppercased()].compactMap { $0 }.joined(separator: " · "))
@@ -121,14 +121,12 @@ struct UsagePopoverView: View {
                 label: L10n.string("action.settings"),
                 action: onSettings
             )
-            Button {
-                Task { await store.refresh() }
-            } label: {
-                Image(systemName: store.isRefreshing ? "arrow.triangle.2.circlepath" : "arrow.clockwise")
-            }
-            .buttonStyle(.plain)
-            .focusable(false)
-            .help(L10n.string("action.refresh"))
+            ToolbarIconButton(
+                systemImage: store.isRefreshing ? "arrow.triangle.2.circlepath" : "arrow.clockwise",
+                label: L10n.string("action.refresh"),
+                action: { Task { await store.refresh() } }
+            )
+            .disabled(store.isRefreshing)
         }
     }
 
@@ -702,7 +700,7 @@ struct AboutView: View {
     let onClose: () -> Void
 
     private var version: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.1"
     }
 
     var body: some View {
@@ -723,7 +721,7 @@ struct AboutView: View {
                 .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
 
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(L10n.string("app.name"))
+                    Text(L10n.string("app.displayName"))
                         .font(.title3.weight(.semibold))
                     Text(L10n.string("about.description"))
                         .font(.caption)
@@ -737,6 +735,7 @@ struct AboutView: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 LabeledContent(L10n.string("about.versionLabel"), value: version)
+                LabeledContent(L10n.string("about.developer"), value: "Òscar Lérida")
                 LabeledContent(L10n.string("about.platform"), value: "macOS")
                 LabeledContent(L10n.string("settings.update"), value: L10n.string("settings.updateValue"))
             }
@@ -745,6 +744,11 @@ struct AboutView: View {
             Spacer(minLength: 20)
 
             HStack {
+                Link(destination: URL(string: "https://github.com/olerida/AIusage")!) {
+                    Label(L10n.string("about.githubRepository"), systemImage: "arrow.up.right.square")
+                }
+                .buttonStyle(.bordered)
+
                 Spacer()
                 Button(L10n.string("action.close"), action: onClose)
                     .buttonStyle(.borderedProminent)

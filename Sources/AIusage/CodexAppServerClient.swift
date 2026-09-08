@@ -88,7 +88,7 @@ final class CodexAppServerClient {
             "clientInfo": .object([
                 "name": .string("aiusage"),
                 "title": .string("AIusage"),
-                "version": .string("1.0.0")
+                "version": .string("1.0.1")
             ])
         ])
         _ = try await request(method: "initialize", params: clientInfo)
