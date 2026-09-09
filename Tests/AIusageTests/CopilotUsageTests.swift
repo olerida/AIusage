@@ -52,7 +52,7 @@ final class CopilotUsageTests: XCTestCase {
 
         let report = try JSONDecoder.github.decode(GitHubBillingUsageReport.self, from: data)
 
-        XCTAssertEqual(report.totalQuantity, 14)
+        XCTAssertEqual(report.totalQuantity, 16)
         XCTAssertEqual(report.totalAmount, 0.56, accuracy: 0.0001)
     }
 
@@ -71,8 +71,8 @@ final class CopilotUsageTests: XCTestCase {
         )
 
         XCTAssertEqual(snapshot.modelUsage, [
-            CopilotModelUsage(model: "gpt-5", quantity: 10),
-            CopilotModelUsage(model: "claude-sonnet", quantity: 4)
+            CopilotModelUsage(model: "gpt-5", quantity: 10, unitType: "requests"),
+            CopilotModelUsage(model: "claude-sonnet", quantity: 4, unitType: "requests")
         ])
         XCTAssertEqual(snapshot.totalNetAmount, 0)
     }
@@ -156,8 +156,38 @@ final class CopilotUsageTests: XCTestCase {
         XCTAssertEqual(snapshot.account.login, "olerida")
         XCTAssertEqual(snapshot.premiumRequests?.totalQuantity, 7)
         XCTAssertNil(snapshot.aiCredits)
-        XCTAssertEqual(snapshot.modelUsage, [CopilotModelUsage(model: "GPT-5", quantity: 7)])
+        XCTAssertEqual(snapshot.modelUsage, [
+            CopilotModelUsage(model: "GPT-5", quantity: 7, unitType: "requests")
+        ])
         XCTAssertEqual(returnedCredentials, credentials)
+    }
+
+    func testCoveredAICreditsRemainVisibleAndSupplyModelBreakdown() {
+        let coveredUsage = GitHubBillingUsageReport.Item(
+            product: "copilot",
+            sku: "copilot_ai_credit",
+            model: "GPT-5",
+            unitType: "ai-credits",
+            grossQuantity: 100,
+            grossAmount: 1,
+            discountQuantity: 100,
+            discountAmount: 1,
+            netQuantity: 0,
+            netAmount: 0
+        )
+        let snapshot = CopilotUsageSnapshot(
+            account: GitHubAccount(login: "olerida", name: nil, avatarURL: nil, htmlURL: nil),
+            premiumRequests: report(items: []),
+            aiCredits: report(items: [coveredUsage]),
+            fetchedAt: Date()
+        )
+
+        XCTAssertEqual(snapshot.aiCredits?.totalQuantity, 100)
+        XCTAssertEqual(snapshot.totalGrossAmount, 1)
+        XCTAssertEqual(snapshot.totalNetAmount, 0)
+        XCTAssertEqual(snapshot.modelUsage, [
+            CopilotModelUsage(model: "GPT-5", quantity: 100, unitType: "ai-credits")
+        ])
     }
 
     private func report(items: [GitHubBillingUsageReport.Item]) -> GitHubBillingUsageReport {

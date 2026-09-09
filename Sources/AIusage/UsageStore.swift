@@ -156,8 +156,13 @@ final class UsageStore: ObservableObject {
             }
             return parts.joined(separator: " · ")
         case .githubCopilot:
-            guard let total = copilotSnapshot?.premiumRequests?.totalQuantity else { return "" }
-            return L10n.string("status.premiumRequests", Self.compactNumber(total))
+            if let report = copilotSnapshot?.premiumRequests, !report.usageItems.isEmpty {
+                return L10n.string("status.premiumRequests", Self.compactNumber(report.totalQuantity))
+            }
+            if let report = copilotSnapshot?.aiCredits, !report.usageItems.isEmpty {
+                return L10n.string("status.aiCredits", Self.compactNumber(report.totalQuantity))
+            }
+            return ""
         }
     }
 

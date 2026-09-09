@@ -15,6 +15,7 @@ All notable changes to AI Usage MB are documented in this file.
 ### Changed
 
 - The popover identity, account details, status text, and external usage action now follow the selected agent.
+- Covered Copilot activity now shows its gross usage separately from the amount actually billed.
 - Unavailable Copilot metrics are omitted instead of showing empty placeholders.
 - The visible app name, bundle, documentation, and GitHub integration are now “AI Usage MB”.
 

@@ -80,12 +80,16 @@
 "state.stale" = "Stale data";
 "status.updated" = "Updated %@";
 "status.premiumRequests" = "PR %@";
+"status.aiCredits" = "AI %@";
 
 "copilot.currentMonth" = "Usage this month";
 "copilot.premiumRequests" = "Premium requests";
 "copilot.aiCredits" = "AI credits";
-"copilot.netAmount" = "Net amount";
+"copilot.grossAmount" = "Gross usage";
+"copilot.netAmount" = "Billed";
 "copilot.models" = "Usage by model";
+"copilot.quantity.credits" = "%@ credits";
+"copilot.quantity.requests" = "%@ requests";
 
 "notification.highUsage" = "High Codex usage";
 "notification.unknownUsage" = "Unknown usage";

@@ -163,8 +163,10 @@ struct UsagePopoverView: View {
     private var footer: some View {
         HStack {
             Button(L10n.string("action.openUsage")) { store.openUsage() }
+                .focusable(false)
             Spacer()
             Button(L10n.string("action.close")) { onClose() }
+                .focusable(false)
         }
         .font(.caption)
     }
@@ -625,26 +627,33 @@ struct CopilotUsageView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                HStack(spacing: 8) {
-                    if let report = snapshot.premiumRequests {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 8)], spacing: 8) {
+                    if let report = snapshot.premiumRequests, !report.usageItems.isEmpty {
                         CopilotMetricCard(
                             title: L10n.string("copilot.premiumRequests"),
                             value: formatNumber(report.totalQuantity),
                             systemImage: "sparkles"
                         )
                     }
-                    if let report = snapshot.aiCredits {
+                    if let report = snapshot.aiCredits, !report.usageItems.isEmpty {
                         CopilotMetricCard(
                             title: L10n.string("copilot.aiCredits"),
                             value: formatNumber(report.totalQuantity),
                             systemImage: "bolt.fill"
                         )
                     }
-                    if snapshot.totalNetAmount > 0 {
+                    if snapshot.totalGrossAmount > 0 {
+                        CopilotMetricCard(
+                            title: L10n.string("copilot.grossAmount"),
+                            value: snapshot.totalGrossAmount.formatted(.currency(code: "USD")),
+                            systemImage: "dollarsign.circle"
+                        )
+                    }
+                    if snapshot.totalGrossAmount > 0 || snapshot.totalNetAmount > 0 {
                         CopilotMetricCard(
                             title: L10n.string("copilot.netAmount"),
                             value: snapshot.totalNetAmount.formatted(.currency(code: "USD")),
-                            systemImage: "dollarsign.circle"
+                            systemImage: "checkmark.seal"
                         )
                     }
                 }
@@ -667,7 +676,7 @@ struct CopilotUsageView: View {
                                 .font(.caption.weight(.medium))
                                 .lineLimit(1)
                             Spacer()
-                            Text(formatNumber(item.quantity))
+                            Text(formatQuantity(item))
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(.secondary)
                         }
@@ -687,6 +696,14 @@ struct CopilotUsageView: View {
 
     private func formatNumber(_ value: Double) -> String {
         value.formatted(.number.precision(.fractionLength(value.rounded() == value ? 0 : 1)))
+    }
+
+    private func formatQuantity(_ item: CopilotModelUsage) -> String {
+        let value = formatNumber(item.quantity)
+        guard let unitType = item.unitType?.lowercased() else { return value }
+        if unitType.contains("credit") { return L10n.string("copilot.quantity.credits", value) }
+        if unitType.contains("request") { return L10n.string("copilot.quantity.requests", value) }
+        return value
     }
 }
 

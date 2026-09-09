@@ -80,12 +80,16 @@
 "state.stale" = "Dades antigues";
 "status.updated" = "Actualitzat %@";
 "status.premiumRequests" = "PR %@";
+"status.aiCredits" = "IA %@";
 
 "copilot.currentMonth" = "Ús d'aquest mes";
 "copilot.premiumRequests" = "Sol·licituds prèmium";
 "copilot.aiCredits" = "Crèdits d'IA";
-"copilot.netAmount" = "Import net";
+"copilot.grossAmount" = "Ús brut";
+"copilot.netAmount" = "Facturat";
 "copilot.models" = "Ús per model";
+"copilot.quantity.credits" = "%@ crèdits";
+"copilot.quantity.requests" = "%@ sol·licituds";
 
 "notification.highUsage" = "Ús alt de Codex";
 "notification.unknownUsage" = "Ús desconegut";

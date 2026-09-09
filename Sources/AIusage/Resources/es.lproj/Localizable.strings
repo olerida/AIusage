@@ -80,12 +80,16 @@
 "state.stale" = "Datos antiguos";
 "status.updated" = "Actualizado %@";
 "status.premiumRequests" = "PR %@";
+"status.aiCredits" = "IA %@";
 
 "copilot.currentMonth" = "Uso de este mes";
 "copilot.premiumRequests" = "Solicitudes premium";
 "copilot.aiCredits" = "Créditos de IA";
-"copilot.netAmount" = "Importe neto";
+"copilot.grossAmount" = "Uso bruto";
+"copilot.netAmount" = "Facturado";
 "copilot.models" = "Uso por modelo";
+"copilot.quantity.credits" = "%@ créditos";
+"copilot.quantity.requests" = "%@ solicitudes";
 
 "notification.highUsage" = "Uso alto de Codex";
 "notification.unknownUsage" = "Uso desconocido";

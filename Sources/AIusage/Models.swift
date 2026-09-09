@@ -374,8 +374,8 @@ struct GitHubBillingUsageReport: Codable, Equatable {
             [product, sku, model, unitType].compactMap { $0 }.joined(separator: ":")
         }
 
-        var effectiveQuantity: Double {
-            max(0, netQuantity ?? grossQuantity ?? 0)
+        var usageQuantity: Double {
+            max(0, grossQuantity ?? netQuantity ?? 0)
         }
     }
 
@@ -384,17 +384,22 @@ struct GitHubBillingUsageReport: Codable, Equatable {
     let usageItems: [Item]
 
     var totalQuantity: Double {
-        usageItems.reduce(0) { $0 + $1.effectiveQuantity }
+        usageItems.reduce(0) { $0 + $1.usageQuantity }
     }
 
     var totalAmount: Double {
         usageItems.reduce(0) { $0 + max(0, $1.netAmount ?? $1.grossAmount ?? 0) }
+    }
+
+    var totalGrossAmount: Double {
+        usageItems.reduce(0) { $0 + max(0, $1.grossAmount ?? $1.netAmount ?? 0) }
     }
 }
 
 struct CopilotModelUsage: Equatable, Identifiable {
     let model: String
     let quantity: Double
+    let unitType: String?
 
     var id: String { model }
 }
@@ -409,16 +414,23 @@ struct CopilotUsageSnapshot: Codable, Equatable {
         [premiumRequests, aiCredits].compactMap { $0 }.reduce(0) { $0 + $1.totalAmount }
     }
 
+    var totalGrossAmount: Double {
+        [premiumRequests, aiCredits].compactMap { $0 }.reduce(0) { $0 + $1.totalGrossAmount }
+    }
+
     var modelUsage: [CopilotModelUsage] {
-        guard let report = premiumRequests ?? aiCredits else { return [] }
+        guard let report = [premiumRequests, aiCredits]
+            .compactMap({ $0 })
+            .first(where: { !$0.usageItems.isEmpty }) else { return [] }
         var totals: [String: Double] = [:]
         for item in report.usageItems {
             let model = item.model?.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard let model, !model.isEmpty, item.effectiveQuantity > 0 else { continue }
-            totals[model, default: 0] += item.effectiveQuantity
+            guard let model, !model.isEmpty, item.usageQuantity > 0 else { continue }
+            totals[model, default: 0] += item.usageQuantity
         }
+        let unitType = report.usageItems.compactMap(\.unitType).first
         return totals
-            .map { CopilotModelUsage(model: $0.key, quantity: $0.value) }
+            .map { CopilotModelUsage(model: $0.key, quantity: $0.value, unitType: unitType) }
             .sorted { lhs, rhs in
                 lhs.quantity == rhs.quantity ? lhs.model < rhs.model : lhs.quantity > rhs.quantity
             }
