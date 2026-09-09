@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-APP_PATH="$ROOT_DIR/dist/AIusage.app"
+APP_PATH="$ROOT_DIR/dist/AI Usage MB.app"
 
 : "${APPLE_SIGNING_IDENTITY:?Set APPLE_SIGNING_IDENTITY}"
 : "${APPLE_NOTARY_PROFILE:?Set APPLE_NOTARY_PROFILE for xcrun notarytool}"

@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PRODUCT_NAME="AIusage"
 DIST_DIR="$ROOT_DIR/dist"
-APP_DIR="$DIST_DIR/AIusage.app"
+APP_DIR="$DIST_DIR/AI Usage MB.app"
 
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"

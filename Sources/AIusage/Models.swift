@@ -1,5 +1,26 @@
 import Foundation
 
+enum AgentKind: String, Codable, CaseIterable, Identifiable {
+    case codex
+    case githubCopilot
+
+    var id: Self { self }
+
+    var displayName: String {
+        switch self {
+        case .codex: return L10n.string("agent.codex")
+        case .githubCopilot: return L10n.string("agent.githubCopilot")
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .codex: return "terminal"
+        case .githubCopilot: return "chevron.left.forwardslash.chevron.right"
+        }
+    }
+}
+
 enum JSONValue: Codable, Equatable {
     case object([String: JSONValue])
     case array([JSONValue])
@@ -309,5 +330,119 @@ enum ConnectionState: Equatable {
         case .stale: return L10n.string("state.stale")
         case .error(let message): return message
         }
+    }
+}
+
+struct GitHubAccount: Codable, Equatable {
+    let login: String
+    let name: String?
+    let avatarURL: URL?
+    let htmlURL: URL?
+
+    enum CodingKeys: String, CodingKey {
+        case login, name
+        case avatarURL = "avatarUrl"
+        case htmlURL = "htmlUrl"
+    }
+
+    var displayName: String {
+        let cleanedName = name?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleanedName?.isEmpty == false ? cleanedName! : "@\(login)"
+    }
+}
+
+struct GitHubBillingUsageReport: Codable, Equatable {
+    struct TimePeriod: Codable, Equatable {
+        let year: Int?
+        let month: Int?
+        let day: Int?
+    }
+
+    struct Item: Codable, Equatable, Identifiable {
+        let product: String?
+        let sku: String?
+        let model: String?
+        let unitType: String?
+        let grossQuantity: Double?
+        let grossAmount: Double?
+        let discountQuantity: Double?
+        let discountAmount: Double?
+        let netQuantity: Double?
+        let netAmount: Double?
+
+        var id: String {
+            [product, sku, model, unitType].compactMap { $0 }.joined(separator: ":")
+        }
+
+        var effectiveQuantity: Double {
+            max(0, netQuantity ?? grossQuantity ?? 0)
+        }
+    }
+
+    let timePeriod: TimePeriod?
+    let user: String?
+    let usageItems: [Item]
+
+    var totalQuantity: Double {
+        usageItems.reduce(0) { $0 + $1.effectiveQuantity }
+    }
+
+    var totalAmount: Double {
+        usageItems.reduce(0) { $0 + max(0, $1.netAmount ?? $1.grossAmount ?? 0) }
+    }
+}
+
+struct CopilotModelUsage: Equatable, Identifiable {
+    let model: String
+    let quantity: Double
+
+    var id: String { model }
+}
+
+struct CopilotUsageSnapshot: Codable, Equatable {
+    let account: GitHubAccount
+    let premiumRequests: GitHubBillingUsageReport?
+    let aiCredits: GitHubBillingUsageReport?
+    let fetchedAt: Date
+
+    var totalNetAmount: Double {
+        [premiumRequests, aiCredits].compactMap { $0 }.reduce(0) { $0 + $1.totalAmount }
+    }
+
+    var modelUsage: [CopilotModelUsage] {
+        guard let report = premiumRequests ?? aiCredits else { return [] }
+        var totals: [String: Double] = [:]
+        for item in report.usageItems {
+            let model = item.model?.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let model, !model.isEmpty, item.effectiveQuantity > 0 else { continue }
+            totals[model, default: 0] += item.effectiveQuantity
+        }
+        return totals
+            .map { CopilotModelUsage(model: $0.key, quantity: $0.value) }
+            .sorted { lhs, rhs in
+                lhs.quantity == rhs.quantity ? lhs.model < rhs.model : lhs.quantity > rhs.quantity
+            }
+    }
+}
+
+struct GitHubDeviceAuthorization: Codable, Equatable {
+    let deviceCode: String
+    let userCode: String
+    let verificationURI: URL
+    let expiresAt: Date
+    let pollingInterval: TimeInterval
+}
+
+struct GitHubCredentials: Codable, Equatable {
+    let accessToken: String
+    let tokenType: String?
+    let scope: String?
+    let expiresAt: Date?
+    let refreshToken: String?
+    let refreshTokenExpiresAt: Date?
+
+    var needsRefresh: Bool {
+        guard let expiresAt else { return false }
+        return expiresAt.timeIntervalSinceNow < 60
     }
 }

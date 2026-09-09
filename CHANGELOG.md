@@ -1,6 +1,22 @@
 # Changelog
 
-All notable changes to AIusage are documented in this file.
+All notable changes to AI Usage MB are documented in this file.
+
+## [1.1.0] - 2026-09-09
+
+### Added
+
+- GitHub Copilot account connection through GitHub's device flow.
+- Monthly personal premium-request and AI-credit usage from GitHub's official billing API.
+- Per-model Copilot usage when the API supplies model data.
+- Secure GitHub token storage in the macOS Keychain.
+- Agent picker and separate Agent and General settings tabs.
+
+### Changed
+
+- The popover identity, account details, status text, and external usage action now follow the selected agent.
+- Unavailable Copilot metrics are omitted instead of showing empty placeholders.
+- The visible app name, bundle, documentation, and GitHub integration are now “AI Usage MB”.
 
 ## [1.0.1] - 2026-09-08
 

@@ -1,7 +1,8 @@
-"app.name" = "AIusage";
-"app.displayName" = "AI usage";
+"app.name" = "AI Usage MB";
+"app.displayName" = "AI Usage MB";
 "agent.codex" = "Codex";
-"icon.usage" = "Codex usage";
+"agent.githubCopilot" = "GitHub Copilot";
+"icon.usage" = "AI usage";
 
 "action.settings" = "Settings";
 "action.about" = "About";
@@ -12,6 +13,8 @@
 "action.choose" = "Choose…";
 "action.select" = "Select";
 "action.logout" = "Sign out";
+"action.copy" = "Copy";
+"action.openGitHub" = "Open GitHub";
 
 "error.codexNotFound" = "The Codex executable was not found.";
 "error.serverNotRunning" = "The Codex app-server is not running.";
@@ -22,6 +25,14 @@
 "error.browserOpen" = "The browser could not be opened.";
 "error.unknownCodex" = "Unknown Codex error.";
 "error.loginFailed" = "Sign-in failed.";
+"error.githubClientID" = "The GitHub integration is not configured yet.";
+"error.githubInvalidResponse" = "GitHub returned an invalid response.";
+"error.githubUnauthorized" = "The GitHub session expired. Sign in again.";
+"error.githubCodeExpired" = "The GitHub code expired. Request another one.";
+"error.githubAccessDenied" = "GitHub access was cancelled.";
+"error.githubRemote" = "GitHub: %@";
+"error.githubKeychain" = "The Keychain could not be accessed: %@";
+"error.githubRateLimited" = "the API rate limit has temporarily been reached.";
 
 "popover.codexNotFound.title" = "Codex not found";
 "popover.codexNotFound.message" = "Install Codex or configure its path in Settings.";
@@ -29,6 +40,10 @@
 "popover.login.message" = "The official Codex authentication flow will open.";
 "popover.stale" = "Stale data: %@";
 "popover.connecting" = "Connecting to Codex…";
+"popover.agentLogin.title" = "Connect %@";
+"popover.login.codex.message" = "Configure your ChatGPT account in Settings.";
+"popover.login.copilot.message" = "Connect your GitHub account in Settings.";
+"popover.connectingAgent" = "Connecting to %@…";
 
 "window.fiveHours" = "5 hours";
 "window.weekly" = "Weekly";
@@ -64,12 +79,19 @@
 "state.ready" = "Connected";
 "state.stale" = "Stale data";
 "status.updated" = "Updated %@";
+"status.premiumRequests" = "PR %@";
+
+"copilot.currentMonth" = "Usage this month";
+"copilot.premiumRequests" = "Premium requests";
+"copilot.aiCredits" = "AI credits";
+"copilot.netAmount" = "Net amount";
+"copilot.models" = "Usage by model";
 
 "notification.highUsage" = "High Codex usage";
 "notification.unknownUsage" = "Unknown usage";
 "notification.body" = "%@: %@. Resets %@.";
 
-"settings.windowTitle" = "AIusage — Settings";
+"settings.windowTitle" = "AI Usage MB — Settings";
 "settings.section.codex" = "Codex";
 "settings.path" = "Binary path";
 "settings.savePath" = "Save path";
@@ -83,9 +105,19 @@
 "settings.updateValue" = "Every 60 seconds";
 "settings.section.account" = "Account";
 "settings.chatgptAccount" = "ChatGPT account";
-"about.windowTitle" = "AI usage — About";
+"settings.tab.agent" = "Agent";
+"settings.tab.general" = "General";
+"settings.agent" = "Active agent";
+"settings.agent.help" = "The panel only shows metrics provided by the selected agent.";
+"settings.account" = "Connected account";
+"settings.login.codex" = "Sign in to ChatGPT";
+"settings.login.github" = "Connect GitHub";
+"settings.copilot.loginHelp" = "GitHub connects with a device code. AI Usage MB does not request repository access.";
+"settings.copilot.enterCode" = "Enter this code on GitHub:";
+"settings.section.codexDisplay" = "Codex in the menu bar";
+"about.windowTitle" = "AI Usage MB — About";
 "about.versionLabel" = "Version";
 "about.developer" = "Developer";
 "about.githubRepository" = "GitHub";
-"about.description" = "Check your Codex usage directly from the menu bar.";
+"about.description" = "Check Codex and GitHub Copilot usage directly from the menu bar.";
 "about.platform" = "Platform";

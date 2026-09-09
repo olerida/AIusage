@@ -141,8 +141,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let window = NSWindow(contentViewController: controller)
         window.title = L10n.string("settings.windowTitle")
         window.styleMask = [.titled, .closable]
-        window.setContentSize(NSSize(width: 520, height: 440))
-        window.minSize = NSSize(width: 520, height: 440)
+        window.setContentSize(NSSize(width: 560, height: 480))
+        window.minSize = NSSize(width: 560, height: 480)
         window.isReleasedWhenClosed = false
         window.center()
         window.delegate = self

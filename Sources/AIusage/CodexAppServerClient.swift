@@ -87,7 +87,7 @@ final class CodexAppServerClient {
         let clientInfo: JSONValue = .object([
             "clientInfo": .object([
                 "name": .string("aiusage"),
-                "title": .string("AIusage"),
+                "title": .string("AI Usage MB"),
                 "version": .string("1.0.1")
             ])
         ])

@@ -1,15 +1,15 @@
-# AIusage
+# AI Usage MB
 
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-111111?logo=apple)
 ![Swift 5.9](https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white)
-![Version](https://img.shields.io/badge/version-v1.0.1-0A84FF)
+![Version](https://img.shields.io/badge/version-v1.1.0-0A84FF)
 ![License](https://img.shields.io/badge/license-MIT-34C759)
 
 <p align="center">
-  <img src="Resources/AppIcon.png" width="180" alt="AIusage app icon">
+  <img src="Resources/AppIcon.png" width="180" alt="AI Usage MB app icon">
 </p>
 
-AIusage is a native macOS menu-bar utility that keeps your Codex usage, limits, and reset credits visible without opening a dashboard.
+AI Usage MB (AI Usage Menu Bar) is a native macOS menu-bar utility for monitoring Codex and GitHub Copilot without keeping a dashboard open.
 
 ## Highlights
 
@@ -19,23 +19,28 @@ AIusage is a native macOS menu-bar utility that keeps your Codex usage, limits, 
 - Daily, weekly, and cumulative token-usage heatmaps.
 - Automatic refresh, stale-data handling, and high-usage notifications.
 - Adaptive popover height, capped at two thirds of the current screen before scrolling.
+- Agent picker with separate Agent and General settings tabs.
+- GitHub Copilot personal billing usage, AI credits, and per-model breakdown when GitHub provides them.
 - Spanish, Catalan, and English localization.
 - Universal binary for Apple Silicon and Intel Macs.
 
 ## Privacy
 
-AIusage starts the official `codex app-server --stdio` process and uses its account APIs. Authentication lives in an isolated Codex home at:
+AI Usage MB starts the official `codex app-server --stdio` process and uses its account APIs. Authentication lives in an isolated Codex home at:
 
 ```text
-~/Library/Application Support/AIusage/CodexHome
+~/Library/Application Support/AI Usage MB/CodexHome
 ```
 
 The app does not consume reset credits and does not read the credentials, logs, or databases of your main Codex installation. Existing data from the previous Codex Usage Bar name is migrated automatically.
 
+GitHub Copilot uses GitHub's device authorization flow. The GitHub App asks only for read access to the account plan, never repository access, and stores its user token in the macOS Keychain. Personal usage endpoints do not include usage billed through an organization or enterprise; unavailable sections are omitted from the panel.
+
 ## Requirements
 
 - macOS 14 Sonoma or later.
-- Codex CLI installed and available as `codex`.
+- Codex CLI installed and available as `codex` when using the Codex agent.
+- A GitHub account when using GitHub Copilot.
 - Xcode 15 or later to build from source.
 
 ## Install
@@ -48,7 +53,7 @@ brew install --cask olerida/tap/aiusage
 
 ### Direct download
 
-Download the latest signed ZIP from [GitHub Releases](https://github.com/olerida/AIusage/releases/latest), extract it, and move `AIusage.app` to Applications.
+Download the latest signed ZIP from [GitHub Releases](https://github.com/olerida/AIusage/releases/latest), extract it, and move `AI Usage MB.app` to Applications.
 
 ## Build and test
 
@@ -78,7 +83,7 @@ APPLE_NOTARY_PROFILE="your-profile" \
   ./Scripts/sign_and_notarize.sh
 ```
 
-Artifacts are written to `dist/AIusage.app` and `dist/AIusage-macos-universal.zip`.
+Artifacts are written to `dist/AI Usage MB.app` and `dist/AIusage-macos-universal.zip`.
 
 ## Project structure
 
@@ -92,8 +97,8 @@ Scripts/                 Packaging, signing, and notarization helpers
 
 ## Release
 
-The current release is **v1.0.1**. Version tags matching `v*` run the test suite, build the universal app, and publish the ZIP through GitHub Actions. The Homebrew cask is maintained separately in `~/Documents/homebrew-tap`.
+The current release is **v1.1.0**. Version tags matching `v*` run the test suite, build the universal app, and publish the ZIP through GitHub Actions. The Homebrew cask is maintained separately in `~/Documents/homebrew-tap`.
 
 ## License
 
-AIusage is available under the [MIT License](LICENSE).
+AI Usage MB is available under the [MIT License](LICENSE).

@@ -11,10 +11,14 @@ enum WorkspaceActions {
     }
 
     @discardableResult
-    static func openUsage() -> Bool {
-        // No public, stable deep link to Usage is documented. Opening the installed app
-        // keeps the action local; the web fallback is always available.
-        return openCodexOrWeb()
+    static func openUsage(for agent: AgentKind) -> Bool {
+        switch agent {
+        case .codex:
+            // No public, stable Codex Usage deep link is documented.
+            return openCodexOrWeb()
+        case .githubCopilot:
+            return NSWorkspace.shared.open(URL(string: "https://github.com/settings/billing")!)
+        }
     }
 
     private static func openInstalledApp() -> Bool {

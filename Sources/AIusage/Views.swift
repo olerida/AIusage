@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 private struct PopoverContentHeightPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
+    static let defaultValue: CGFloat = 0
 
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = max(value, nextValue())
@@ -41,39 +41,7 @@ struct UsagePopoverView: View {
                 header
                 Divider()
 
-                if store.state == .needsCodex {
-                    EmptyStateView(
-                        title: L10n.string("popover.codexNotFound.title"),
-                        message: L10n.string("popover.codexNotFound.message"),
-                        buttonTitle: L10n.string("action.settings"),
-                        action: onSettings
-                    )
-                } else if store.state == .needsLogin {
-                    EmptyStateView(
-                        title: L10n.string("popover.login.title"),
-                        message: L10n.string("popover.login.message"),
-                        buttonTitle: L10n.string("action.login"),
-                        action: { Task { await store.login() } }
-                    )
-                } else if let snapshot = store.snapshot {
-                    if store.isStale {
-                        Label(L10n.string("popover.stale", snapshot.fetchedAt.formatted(date: .abbreviated, time: .shortened)), systemImage: "clock.badge.exclamationmark")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                    }
-
-                    ForEach(snapshot.windows) { window in
-                        UsageWindowCard(window: window)
-                    }
-                    ResetCreditsSection(snapshot: snapshot)
-                    if let tokenUsage = snapshot.tokenUsage {
-                        TokenUsageSection(usage: tokenUsage)
-                    }
-                } else {
-                    ProgressView(L10n.string("popover.connecting"))
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.vertical, 24)
-                }
+                content
 
                 footer
             }
@@ -95,13 +63,75 @@ struct UsagePopoverView: View {
         }
     }
 
+    @ViewBuilder
+    private var content: some View {
+        if store.state == .needsCodex {
+            EmptyStateView(
+                title: L10n.string("popover.codexNotFound.title"),
+                message: L10n.string("popover.codexNotFound.message"),
+                buttonTitle: L10n.string("action.settings"),
+                action: onSettings
+            )
+        } else if store.state == .needsLogin {
+            EmptyStateView(
+                title: L10n.string("popover.agentLogin.title", store.agentTitle),
+                message: store.selectedAgent == .codex
+                    ? L10n.string("popover.login.codex.message")
+                    : L10n.string("popover.login.copilot.message"),
+                buttonTitle: L10n.string("action.settings"),
+                action: onSettings
+            )
+        } else {
+            switch store.selectedAgent {
+            case .codex:
+                if let snapshot = store.snapshot {
+                    staleLabel(fetchedAt: snapshot.fetchedAt)
+                    ForEach(snapshot.windows) { window in
+                        UsageWindowCard(window: window)
+                    }
+                    ResetCreditsSection(snapshot: snapshot)
+                    if let tokenUsage = snapshot.tokenUsage {
+                        TokenUsageSection(usage: tokenUsage)
+                    }
+                } else {
+                    connectingView
+                }
+            case .githubCopilot:
+                if let snapshot = store.copilotSnapshot {
+                    staleLabel(fetchedAt: snapshot.fetchedAt)
+                    CopilotUsageView(snapshot: snapshot)
+                } else {
+                    connectingView
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func staleLabel(fetchedAt: Date) -> some View {
+        if store.isStale {
+            Label(
+                L10n.string("popover.stale", fetchedAt.formatted(date: .abbreviated, time: .shortened)),
+                systemImage: "clock.badge.exclamationmark"
+            )
+            .font(.caption)
+            .foregroundStyle(.orange)
+        }
+    }
+
+    private var connectingView: some View {
+        ProgressView(L10n.string("popover.connectingAgent", store.agentTitle))
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.vertical, 24)
+    }
+
     private var header: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(L10n.string("agent.codex"))
+                Text(store.agentTitle)
                     .font(.headline)
-                if let account = store.account {
-                    Text([account.email, account.planType?.uppercased()].compactMap { $0 }.joined(separator: " · "))
+                if let accountSubtitle = store.accountSubtitle {
+                    Text(accountSubtitle)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
@@ -580,6 +610,110 @@ struct TokenUsageHeatmap: View {
     }
 }
 
+struct CopilotUsageView: View {
+    let snapshot: CopilotUsageSnapshot
+
+    var body: some View {
+        if snapshot.premiumRequests != nil || snapshot.aiCredits != nil {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text(L10n.string("copilot.currentMonth"))
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                    Text(Date.now.formatted(.dateTime.month(.wide).year()))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 8) {
+                    if let report = snapshot.premiumRequests {
+                        CopilotMetricCard(
+                            title: L10n.string("copilot.premiumRequests"),
+                            value: formatNumber(report.totalQuantity),
+                            systemImage: "sparkles"
+                        )
+                    }
+                    if let report = snapshot.aiCredits {
+                        CopilotMetricCard(
+                            title: L10n.string("copilot.aiCredits"),
+                            value: formatNumber(report.totalQuantity),
+                            systemImage: "bolt.fill"
+                        )
+                    }
+                    if snapshot.totalNetAmount > 0 {
+                        CopilotMetricCard(
+                            title: L10n.string("copilot.netAmount"),
+                            value: snapshot.totalNetAmount.formatted(.currency(code: "USD")),
+                            systemImage: "dollarsign.circle"
+                        )
+                    }
+                }
+            }
+        }
+
+        let models = snapshot.modelUsage
+        if !models.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(L10n.string("copilot.models"))
+                    .font(.subheadline.weight(.semibold))
+
+                VStack(spacing: 0) {
+                    ForEach(Array(models.enumerated()), id: \.element.id) { index, item in
+                        HStack(spacing: 10) {
+                            Image(systemName: "cpu")
+                                .foregroundStyle(.tint)
+                                .frame(width: 18)
+                            Text(item.model)
+                                .font(.caption.weight(.medium))
+                                .lineLimit(1)
+                            Spacer()
+                            Text(formatNumber(item.quantity))
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 9)
+                        if index < models.count - 1 { Divider().padding(.leading, 39) }
+                    }
+                }
+                .background(.quaternary.opacity(0.32), in: RoundedRectangle(cornerRadius: 10))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                }
+            }
+        }
+    }
+
+    private func formatNumber(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(value.rounded() == value ? 0 : 1)))
+    }
+}
+
+private struct CopilotMetricCard: View {
+    let title: String
+    let value: String
+    let systemImage: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tint)
+            Text(value)
+                .font(.title3.weight(.semibold))
+                .monospacedDigit()
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .padding(11)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+    }
+}
+
 struct EmptyStateView: View {
     let title: String
     let message: String
@@ -615,22 +749,117 @@ struct SettingsView: View {
     @State private var settingsError: String?
 
     var body: some View {
-        Form {
-            Section {
-                HStack {
-                    TextField(L10n.string("settings.path"), text: $codexPath)
-                        .textFieldStyle(.roundedBorder)
-                    Button(L10n.string("action.choose")) { chooseCodex() }
-                }
-                Button(L10n.string("settings.savePath")) {
-                    Task { await store.setCodexPath(codexPath) }
-                }
-                .disabled(codexPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            } header: {
-                Text(L10n.string("settings.section.codex"))
+        VStack(spacing: 0) {
+            TabView {
+                agentTab
+                    .tabItem { Label(L10n.string("settings.tab.agent"), systemImage: "cpu") }
+                generalTab
+                    .tabItem { Label(L10n.string("settings.tab.general"), systemImage: "gearshape") }
             }
 
+            Divider()
+            HStack {
+                Spacer()
+                Button(L10n.string("action.close"), action: onClose)
+                    .keyboardShortcut(.cancelAction)
+            }
+            .padding(14)
+        }
+        .frame(width: 560, height: 480)
+    }
+
+    private var agentTab: some View {
+        Form {
             Section {
+                Picker(L10n.string("settings.agent"), selection: agentBinding) {
+                    ForEach(AgentKind.allCases) { agent in
+                        Label(agent.displayName, systemImage: agent.systemImage).tag(agent)
+                    }
+                }
+                .pickerStyle(.segmented)
+                Text(L10n.string("settings.agent.help"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if store.selectedAgent == .codex {
+                Section(L10n.string("settings.section.codex")) {
+                    HStack {
+                        TextField(L10n.string("settings.path"), text: $codexPath)
+                            .textFieldStyle(.roundedBorder)
+                        Button(L10n.string("action.choose")) { chooseCodex() }
+                    }
+                    Button(L10n.string("settings.savePath")) {
+                        Task { await store.setCodexPath(codexPath) }
+                    }
+                    .disabled(codexPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+
+            Section(L10n.string("settings.section.account")) {
+                accountControls
+            }
+
+            if let error = store.lastError, !error.isEmpty {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .textSelection(.enabled)
+            }
+        }
+        .formStyle(.grouped)
+        .padding(.horizontal, 8)
+    }
+
+    @ViewBuilder
+    private var accountControls: some View {
+        switch store.selectedAgent {
+        case .codex:
+            if let account = store.account {
+                LabeledContent(L10n.string("settings.account")) {
+                    Text(account.email ?? L10n.string("settings.chatgptAccount"))
+                }
+                Button(L10n.string("action.logout")) { Task { await store.logout() } }
+            } else {
+                Button(L10n.string("settings.login.codex")) { Task { await store.login() } }
+            }
+        case .githubCopilot:
+            if store.state != .needsLogin, let account = store.copilotSnapshot?.account {
+                LabeledContent(L10n.string("settings.account")) {
+                    Text("@\(account.login)")
+                }
+                Button(L10n.string("action.logout")) { Task { await store.logout() } }
+            } else if let authorization = store.copilotDeviceAuthorization {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(L10n.string("settings.copilot.enterCode"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    HStack {
+                        Text(authorization.userCode)
+                            .font(.system(.title3, design: .monospaced, weight: .semibold))
+                            .textSelection(.enabled)
+                        Spacer()
+                        Button(L10n.string("action.copy")) { copy(authorization.userCode) }
+                        Button(L10n.string("action.openGitHub")) {
+                            NSWorkspace.shared.open(authorization.verificationURI)
+                        }
+                    }
+                    ProgressView()
+                        .controlSize(.small)
+                }
+            } else {
+                Text(L10n.string("settings.copilot.loginHelp"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button(L10n.string("settings.login.github")) { Task { await store.login() } }
+                    .disabled(store.isAuthenticatingCopilot)
+            }
+        }
+    }
+
+    private var generalTab: some View {
+        Form {
+            Section(L10n.string("settings.section.behavior")) {
                 Toggle(L10n.string("settings.launchAtLogin"), isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, value in
                         do {
@@ -640,32 +869,24 @@ struct SettingsView: View {
                             launchAtLogin = LaunchAtLoginManager.isEnabled
                         }
                     }
-                Toggle(L10n.string("settings.notify"), isOn: $notificationsEnabled)
-                    .onChange(of: notificationsEnabled) { _, value in
-                        store.setNotificationsEnabled(value)
-                    }
-                Toggle(L10n.string("settings.showFiveHourPercentage"), isOn: $showFiveHourPercentageInMenuBar)
-                    .onChange(of: showFiveHourPercentageInMenuBar) { _, value in
-                        store.setShowFiveHourPercentageInMenuBar(value)
-                    }
-                Toggle(L10n.string("settings.showWeeklyPercentage"), isOn: $showWeeklyPercentageInMenuBar)
-                    .onChange(of: showWeeklyPercentageInMenuBar) { _, value in
-                        store.setShowWeeklyPercentageInMenuBar(value)
-                    }
                 LabeledContent(L10n.string("settings.update"), value: L10n.string("settings.updateValue"))
-            } header: {
-                Text(L10n.string("settings.section.behavior"))
             }
 
-            Section {
-                if let account = store.account {
-                    Text(account.email ?? L10n.string("settings.chatgptAccount"))
-                    Button(L10n.string("action.logout")) { Task { await store.logout() } }
-                } else {
-                    Button(L10n.string("action.login")) { Task { await store.login() } }
+            if store.selectedAgent == .codex {
+                Section(L10n.string("settings.section.codexDisplay")) {
+                    Toggle(L10n.string("settings.notify"), isOn: $notificationsEnabled)
+                        .onChange(of: notificationsEnabled) { _, value in
+                            store.setNotificationsEnabled(value)
+                        }
+                    Toggle(L10n.string("settings.showFiveHourPercentage"), isOn: $showFiveHourPercentageInMenuBar)
+                        .onChange(of: showFiveHourPercentageInMenuBar) { _, value in
+                            store.setShowFiveHourPercentageInMenuBar(value)
+                        }
+                    Toggle(L10n.string("settings.showWeeklyPercentage"), isOn: $showWeeklyPercentageInMenuBar)
+                        .onChange(of: showWeeklyPercentageInMenuBar) { _, value in
+                            store.setShowWeeklyPercentageInMenuBar(value)
+                        }
                 }
-            } header: {
-                Text(L10n.string("settings.section.account"))
             }
 
             if let settingsError {
@@ -673,15 +894,13 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.red)
             }
-
-            HStack {
-                Spacer()
-                Button(L10n.string("action.close"), action: onClose)
-            }
         }
         .formStyle(.grouped)
-        .padding()
-        .frame(width: 520)
+        .padding(.horizontal, 8)
+    }
+
+    private var agentBinding: Binding<AgentKind> {
+        Binding(get: { store.selectedAgent }, set: { store.selectAgent($0) })
     }
 
     private func chooseCodex() {
@@ -694,13 +913,18 @@ struct SettingsView: View {
             codexPath = url.path
         }
     }
+
+    private func copy(_ value: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(value, forType: .string)
+    }
 }
 
 struct AboutView: View {
     let onClose: () -> Void
 
     private var version: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.1"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1.0"
     }
 
     var body: some View {

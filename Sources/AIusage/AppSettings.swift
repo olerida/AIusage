@@ -1,7 +1,9 @@
 import Foundation
 
 enum AppSettings {
-    private static let legacyDefaults = UserDefaults(suiteName: "com.codexusagebar.app")
+    private static var legacyDefaults: UserDefaults? {
+        UserDefaults(suiteName: "com.codexusagebar.app")
+    }
     private static let codexPathKey = "codexPath"
     private static let notificationsKey = "notificationsEnabled"
     private static let launchAtLoginKey = "launchAtLogin"
@@ -9,6 +11,16 @@ enum AppSettings {
     private static let showFiveHourPercentageInMenuBarKey = "showFiveHourPercentageInMenuBar"
     private static let showWeeklyPercentageInMenuBarKey = "showWeeklyPercentageInMenuBar"
     private static let alertedKeysKey = "alertedKeys"
+    private static let selectedAgentKey = "selectedAgent"
+
+    static var selectedAgent: AgentKind {
+        get {
+            guard let rawValue = UserDefaults.standard.string(forKey: selectedAgentKey),
+                  let agent = AgentKind(rawValue: rawValue) else { return .codex }
+            return agent
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: selectedAgentKey) }
+    }
 
     static var codexPath: String? {
         get {
@@ -67,10 +79,13 @@ enum AppSettings {
 
     static var applicationSupportDirectory: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let directory = base.appendingPathComponent("AIusage", isDirectory: true)
-        let legacyDirectory = base.appendingPathComponent("Codex Usage Bar", isDirectory: true)
+        let directory = base.appendingPathComponent("AI Usage MB", isDirectory: true)
+        let legacyDirectories = ["AI usage", "AIusage", "Codex Usage Bar"]
+            .map { base.appendingPathComponent($0, isDirectory: true) }
         if !FileManager.default.fileExists(atPath: directory.path),
-           FileManager.default.fileExists(atPath: legacyDirectory.path) {
+           let legacyDirectory = legacyDirectories.first(where: {
+               FileManager.default.fileExists(atPath: $0.path)
+           }) {
             try? FileManager.default.moveItem(at: legacyDirectory, to: directory)
         }
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -85,6 +100,20 @@ enum AppSettings {
 
     static var snapshotURL: URL {
         applicationSupportDirectory.appendingPathComponent("last-snapshot.json")
+    }
+
+    static var copilotSnapshotURL: URL {
+        applicationSupportDirectory.appendingPathComponent("copilot-snapshot.json")
+    }
+
+    static var gitHubClientID: String? {
+        let environmentValue = ProcessInfo.processInfo.environment["AIUSAGE_GITHUB_CLIENT_ID"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if let environmentValue, !environmentValue.isEmpty { return environmentValue }
+
+        let bundledValue = Bundle.main.object(forInfoDictionaryKey: "AIUsageGitHubClientID") as? String
+        let cleanedValue = bundledValue?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleanedValue?.isEmpty == false ? cleanedValue : nil
     }
 
     private static func migratedBool(forKey key: String, default defaultValue: Bool) -> Bool {
