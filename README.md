@@ -2,7 +2,7 @@
 
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-111111?logo=apple)
 ![Swift 5.9](https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white)
-![Version](https://img.shields.io/badge/version-v1.1.0-0A84FF)
+![Version](https://img.shields.io/badge/version-v1.2.0-0A84FF)
 ![License](https://img.shields.io/badge/license-MIT-34C759)
 
 <p align="center">
@@ -17,6 +17,7 @@ AI Usage MB (AI Usage Menu Bar) is a native macOS menu-bar utility for monitorin
 - Optional 5-hour and weekly percentages in the menu bar.
 - Reset-credit list with expired credits hidden and credits expiring within three days highlighted.
 - Daily, weekly, and cumulative token-usage heatmaps.
+- Codex token usage by model for the last 30 days, split into input, output, and cache tokens.
 - Automatic refresh, stale-data handling, and high-usage notifications.
 - Adaptive popover height, capped at two thirds of the current screen before scrolling.
 - Agent picker with separate Agent and General settings tabs.
@@ -32,7 +33,7 @@ AI Usage MB starts the official `codex app-server --stdio` process and uses its 
 ~/Library/Application Support/AI Usage MB/CodexHome
 ```
 
-The app does not consume reset credits and does not read the credentials, logs, or databases of your main Codex installation. Existing data from the previous Codex Usage Bar name is migrated automatically.
+The app does not consume reset credits and does not read the credentials or databases of your main Codex installation. To calculate usage by model, it locally scans the JSONL session files under `CODEX_HOME` or `~/.codex` and processes only model identifiers and token counters; prompt and response contents are neither stored nor transmitted. Existing data from the previous Codex Usage Bar name is migrated automatically.
 
 GitHub Copilot uses GitHub's device authorization flow. The GitHub App asks only for read access to the account plan, never repository access, and stores its user token in the macOS Keychain. Personal usage endpoints do not include usage billed through an organization or enterprise; unavailable sections are omitted from the panel.
 
@@ -97,7 +98,7 @@ Scripts/                 Packaging, signing, and notarization helpers
 
 ## Release
 
-The current release is **v1.1.0**. Version tags matching `v*` run the test suite, build the universal app, and publish the ZIP through GitHub Actions. The Homebrew cask is maintained separately in `~/Documents/homebrew-tap`.
+The current release is **v1.2.0**. Version tags matching `v*` run the test suite, build the universal app, and publish the ZIP through GitHub Actions. The Homebrew cask is maintained separately in `~/Documents/homebrew-tap`.
 
 ## License
 

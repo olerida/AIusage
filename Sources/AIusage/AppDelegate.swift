@@ -9,6 +9,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var popover: NSPopover!
     private var settingsWindow: NSWindow?
     private var aboutWindow: NSWindow?
+    private var localMouseMonitor: Any?
+    private var globalMouseMonitor: Any?
     private var cancellables = Set<AnyCancellable>()
     private let popoverWidth: CGFloat = 580
     private var measuredPopoverContentHeight: CGFloat = 700
@@ -32,6 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         popover = NSPopover()
         popover.behavior = .transient
+        popover.delegate = self
         popover.contentSize = NSSize(
             width: popoverWidth,
             height: min(measuredPopoverContentHeight, maximumPopoverHeight)
@@ -55,6 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             updatePopoverHeight(for: measuredPopoverContentHeight)
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             popover.contentViewController?.view.window?.becomeKey()
+            startOutsideClickMonitoring()
         }
     }
 
@@ -78,6 +82,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func closePopover() {
         guard popover.isShown else { return }
         popover.close()
+    }
+
+    private func startOutsideClickMonitoring() {
+        stopOutsideClickMonitoring()
+        let mouseEvents: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+
+        localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: mouseEvents) { [weak self] event in
+            guard let self, self.popover.isShown else { return event }
+            if event.window === self.popover.contentViewController?.view.window
+                || event.window === self.statusItem.button?.window {
+                return event
+            }
+            self.closePopover()
+            return event
+        }
+
+        globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: mouseEvents) { [weak self] _ in
+            Task { @MainActor in self?.closePopover() }
+        }
+    }
+
+    private func stopOutsideClickMonitoring() {
+        if let localMouseMonitor {
+            NSEvent.removeMonitor(localMouseMonitor)
+            self.localMouseMonitor = nil
+        }
+        if let globalMouseMonitor {
+            NSEvent.removeMonitor(globalMouseMonitor)
+            self.globalMouseMonitor = nil
+        }
     }
 
     private func terminateApplication() {
@@ -176,7 +210,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-extension AppDelegate: NSWindowDelegate {
+extension AppDelegate: NSWindowDelegate, NSPopoverDelegate {
+    func popoverDidClose(_ notification: Notification) {
+        stopOutsideClickMonitoring()
+    }
+
     func windowWillClose(_ notification: Notification) {
         if (notification.object as? NSWindow) === settingsWindow {
             settingsWindow = nil

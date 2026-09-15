@@ -71,6 +71,10 @@
 "usage.noData" = "No hi ha dades d'ús de tokens disponibles.";
 "usage.less" = "Menys";
 "usage.more" = "Més";
+"usage.byModel" = "Ús per model";
+"usage.last30Days" = "Últims 30 dies";
+"usage.modelTokens" = "%@ tokens";
+"usage.modelBreakdown" = "Entrada %@ · Sortida %@ · Memòria cau %@";
 
 "state.starting" = "Iniciant…";
 "state.needsCodex" = "No s'ha trobat Codex";

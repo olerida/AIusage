@@ -71,6 +71,10 @@
 "usage.noData" = "No hay datos de tokens disponibles.";
 "usage.less" = "Menos";
 "usage.more" = "Más";
+"usage.byModel" = "Uso por modelo";
+"usage.last30Days" = "Últimos 30 días";
+"usage.modelTokens" = "%@ tokens";
+"usage.modelBreakdown" = "Entrada %@ · Salida %@ · Caché %@";
 
 "state.starting" = "Iniciando…";
 "state.needsCodex" = "Codex no encontrado";

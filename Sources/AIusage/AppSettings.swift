@@ -98,6 +98,16 @@ enum AppSettings {
         return directory
     }
 
+    static var localCodexHomeDirectory: URL {
+        let configuredPath = ProcessInfo.processInfo.environment["CODEX_HOME"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if let configuredPath, !configuredPath.isEmpty {
+            return URL(fileURLWithPath: (configuredPath as NSString).expandingTildeInPath, isDirectory: true)
+        }
+        return URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
+            .appendingPathComponent(".codex", isDirectory: true)
+    }
+
     static var snapshotURL: URL {
         applicationSupportDirectory.appendingPathComponent("last-snapshot.json")
     }

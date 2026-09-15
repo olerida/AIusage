@@ -20,6 +20,9 @@ final class UsageStore: ObservableObject {
     private var refreshTask: Task<Void, Never>?
     private var refreshRequested = false
     private let notificationService = NotificationService()
+    private let codexSessionScanner = CodexSessionUsageScanner(
+        homeDirectory: AppSettings.localCodexHomeDirectory
+    )
 
     init() {
         loadCachedSnapshots()
@@ -204,14 +207,17 @@ final class UsageStore: ObservableObject {
                 return
             }
 
+            async let modelUsageResult = codexSessionScanner.scan()
             let limits = try await client.readRateLimits()
             let tokenUsage = (try? await client.readTokenUsage()) ?? snapshot?.tokenUsage
+            let modelUsage = await modelUsageResult
             let newSnapshot = UsageSnapshot(
                 account: account,
                 windows: limits.normalizedWindows(),
                 resets: limits.normalizedResets(),
                 availableResetCount: limits.availableResetCount,
                 tokenUsage: tokenUsage,
+                modelUsage: modelUsage.isEmpty ? nil : modelUsage,
                 fetchedAt: Date()
             )
             self.account = account

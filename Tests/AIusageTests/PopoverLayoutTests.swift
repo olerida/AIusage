@@ -5,6 +5,42 @@ import XCTest
 
 @MainActor
 final class PopoverLayoutTests: XCTestCase {
+    func testCodexModelUsageRendersWithinPopoverWidth() throws {
+        let view = CodexModelUsageSection(models: [
+            CodexModelUsage(
+                model: "gpt-5.6-sol",
+                inputTokens: 12_400_000,
+                outputTokens: 820_000,
+                cachedInputTokens: 31_000_000,
+                cacheWriteInputTokens: 0
+            ),
+            CodexModelUsage(
+                model: "gpt-5.4",
+                inputTokens: 3_100_000,
+                outputTokens: 240_000,
+                cachedInputTokens: 9_800_000,
+                cacheWriteInputTokens: 420_000
+            ),
+            CodexModelUsage(
+                model: "codex-auto-review",
+                inputTokens: 920_000,
+                outputTokens: 110_000,
+                cachedInputTokens: 1_700_000,
+                cacheWriteInputTokens: 0
+            )
+        ])
+        .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .preferredColorScheme(.dark)
+
+        let image = try render(view, size: NSSize(width: 580, height: 230))
+
+        XCTAssertEqual(image.size.width, 580)
+        XCTAssertEqual(image.size.height, 230)
+        try saveIfRequested(image, name: "codex-model-usage.png")
+    }
+
     func testCopilotPopoverRendersWithinCompactHeight() throws {
         let store = UsageStore(
             previewAgent: .githubCopilot,

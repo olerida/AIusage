@@ -93,6 +93,9 @@ struct UsagePopoverView: View {
                     if let tokenUsage = snapshot.tokenUsage {
                         TokenUsageSection(usage: tokenUsage)
                     }
+                    if let modelUsage = snapshot.modelUsage, !modelUsage.isEmpty {
+                        CodexModelUsageSection(models: modelUsage)
+                    }
                 } else {
                     connectingView
                 }
@@ -355,6 +358,94 @@ enum TokenUsageMapMode: String, CaseIterable, Identifiable {
         case .weekly: return L10n.string("usage.weekly")
         case .cumulative: return L10n.string("usage.cumulative")
         }
+    }
+}
+
+struct CodexModelUsageSection: View {
+    let models: [CodexModelUsage]
+
+    private var maximumTokens: Int64 {
+        max(1, models.map(\.totalTokens).max() ?? 0)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(L10n.string("usage.byModel"))
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                Text(L10n.string("usage.last30Days"))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            VStack(spacing: 0) {
+                ForEach(Array(models.enumerated()), id: \.element.id) { index, model in
+                    CodexModelUsageRow(model: model, maximumTokens: maximumTokens)
+                    if index < models.count - 1 {
+                        Divider().padding(.leading, 11)
+                    }
+                }
+            }
+            .background(.quaternary.opacity(0.32), in: RoundedRectangle(cornerRadius: 10))
+            .overlay {
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+            }
+        }
+        .padding(.top, 4)
+    }
+}
+
+private struct CodexModelUsageRow: View {
+    let model: CodexModelUsage
+    let maximumTokens: Int64
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "cpu")
+                .foregroundStyle(.tint)
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(model.model)
+                    .font(.caption.weight(.medium))
+                    .lineLimit(1)
+                Text(L10n.string(
+                    "usage.modelBreakdown",
+                    compact(model.inputTokens),
+                    compact(model.outputTokens),
+                    compact(model.cachedTokens)
+                ))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+
+            Text(L10n.string("usage.modelTokens", compact(model.totalTokens)))
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 11)
+        .padding(.vertical, 8)
+        .background(alignment: .leading) {
+            GeometryReader { proxy in
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.accentColor.opacity(0.10))
+                    .frame(width: proxy.size.width * CGFloat(model.totalTokens) / CGFloat(maximumTokens))
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func compact(_ value: Int64) -> String {
+        value.formatted(
+            .number
+                .notation(.compactName)
+                .precision(.fractionLength(0...1))
+        )
     }
 }
 
@@ -941,7 +1032,7 @@ struct AboutView: View {
     let onClose: () -> Void
 
     private var version: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1.0"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.2.0"
     }
 
     var body: some View {

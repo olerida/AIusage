@@ -243,6 +243,24 @@ struct AccountTokenUsage: Codable, Equatable {
     let dailyUsageBuckets: [AccountTokenUsageDailyBucket]?
 }
 
+struct CodexModelUsage: Codable, Equatable, Identifiable, Sendable {
+    let model: String
+    let inputTokens: Int64
+    let outputTokens: Int64
+    let cachedInputTokens: Int64
+    let cacheWriteInputTokens: Int64
+
+    var id: String { model }
+
+    var totalTokens: Int64 {
+        inputTokens + outputTokens + cachedInputTokens + cacheWriteInputTokens
+    }
+
+    var cachedTokens: Int64 {
+        cachedInputTokens + cacheWriteInputTokens
+    }
+}
+
 struct UsageWindow: Codable, Equatable, Identifiable {
     enum Kind: String, Codable {
         case fiveHours
@@ -308,7 +326,26 @@ struct UsageSnapshot: Codable, Equatable {
     let resets: [ResetCredit]
     let availableResetCount: Int
     let tokenUsage: AccountTokenUsage?
+    let modelUsage: [CodexModelUsage]?
     let fetchedAt: Date
+
+    init(
+        account: AccountInfo?,
+        windows: [UsageWindow],
+        resets: [ResetCredit],
+        availableResetCount: Int,
+        tokenUsage: AccountTokenUsage?,
+        modelUsage: [CodexModelUsage]? = nil,
+        fetchedAt: Date
+    ) {
+        self.account = account
+        self.windows = windows
+        self.resets = resets
+        self.availableResetCount = availableResetCount
+        self.tokenUsage = tokenUsage
+        self.modelUsage = modelUsage
+        self.fetchedAt = fetchedAt
+    }
 }
 
 enum ConnectionState: Equatable {

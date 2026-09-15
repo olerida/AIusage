@@ -71,6 +71,10 @@
 "usage.noData" = "No token usage data is available.";
 "usage.less" = "Less";
 "usage.more" = "More";
+"usage.byModel" = "Usage by model";
+"usage.last30Days" = "Last 30 days";
+"usage.modelTokens" = "%@ tokens";
+"usage.modelBreakdown" = "Input %@ · Output %@ · Cache %@";
 
 "state.starting" = "Starting…";
 "state.needsCodex" = "Codex not found";
