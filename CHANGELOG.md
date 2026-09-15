@@ -2,6 +2,12 @@
 
 All notable changes to AI Usage MB are documented in this file.
 
+## [1.2.1] - 2026-09-15
+
+### Fixed
+
+- Release packages now place the SwiftPM resource bundle at its runtime lookup path, preventing startup crashes outside the build machine.
+
 ## [1.2.0] - 2026-09-15
 
 ### Added

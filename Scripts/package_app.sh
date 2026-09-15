@@ -25,6 +25,7 @@ cp "$ROOT_DIR/Resources/Info.plist" "$APP_DIR/Contents/Info.plist"
 cp "$ROOT_DIR/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
 cp -R "$RESOURCE_BUNDLE" "$APP_DIR/Contents/Resources/"
 chmod +x "$APP_DIR/Contents/MacOS/$PRODUCT_NAME"
+test -f "$APP_DIR/Contents/Resources/AIusage_AIusage.bundle/Contents/Info.plist"
 
 for language in es ca en; do
   if [[ -f "$RESOURCE_BUNDLE/$language.lproj/InfoPlist.strings" ]]; then
