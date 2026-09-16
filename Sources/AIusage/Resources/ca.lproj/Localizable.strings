@@ -85,6 +85,7 @@
 "status.updated" = "Actualitzat %@";
 "status.premiumRequests" = "PR %@";
 "status.aiCredits" = "IA %@";
+"status.usagePercentage" = "%d%%";
 
 "copilot.currentMonth" = "Ús d'aquest mes";
 "copilot.premiumRequests" = "Sol·licituds prèmium";
@@ -94,6 +95,10 @@
 "copilot.models" = "Ús per model";
 "copilot.quantity.credits" = "%@ crèdits";
 "copilot.quantity.requests" = "%@ sol·licituds";
+"copilot.credits" = "Crèdits";
+"copilot.used" = "usat";
+"copilot.resetsAt" = "Es restableix %@";
+"copilot.creditProgress" = "%@ de %@ crèdits";
 
 "notification.highUsage" = "Ús alt de Codex";
 "notification.unknownUsage" = "Ús desconegut";
@@ -123,6 +128,9 @@
 "settings.copilot.loginHelp" = "GitHub es connecta amb un codi de dispositiu. AI Usage MB no demana accés als repositoris.";
 "settings.copilot.enterCode" = "Introdueix aquest codi a GitHub:";
 "settings.section.codexDisplay" = "Codex a la barra de menús";
+"settings.section.copilotDisplay" = "Copilot a la barra de menús";
+"settings.showCopilotCredits" = "Mostra els crèdits a la barra";
+"settings.showCopilotUsagePercentage" = "Mostra el percentatge usat a la barra";
 "about.windowTitle" = "AI Usage MB — Informació";
 "about.versionLabel" = "Versió";
 "about.developer" = "Desenvolupador";

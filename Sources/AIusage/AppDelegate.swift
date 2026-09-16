@@ -15,6 +15,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let popoverWidth: CGFloat = 580
     private var measuredPopoverContentHeight: CGFloat = 700
 
+    // This is a menu-bar app. Persisting SwiftUI's empty Settings scene causes
+    // macOS to restore a blank window the next time the app launches.
+    func applicationShouldSaveApplicationState(_ sender: NSApplication) -> Bool {
+        false
+    }
+
+    func applicationShouldRestoreApplicationState(_ sender: NSApplication) -> Bool {
+        false
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
 

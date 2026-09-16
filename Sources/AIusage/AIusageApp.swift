@@ -1,12 +1,12 @@
-import SwiftUI
+import AppKit
 
 @main
-struct AIusageApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-
-    var body: some Scene {
-        Settings {
-            EmptyView()
-        }
+enum AIusageApp {
+    @MainActor
+    static func main() {
+        let application = NSApplication.shared
+        let appDelegate = AppDelegate()
+        application.delegate = appDelegate
+        application.run()
     }
 }

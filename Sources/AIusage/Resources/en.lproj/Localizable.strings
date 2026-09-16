@@ -85,6 +85,7 @@
 "status.updated" = "Updated %@";
 "status.premiumRequests" = "PR %@";
 "status.aiCredits" = "AI %@";
+"status.usagePercentage" = "%d%%";
 
 "copilot.currentMonth" = "Usage this month";
 "copilot.premiumRequests" = "Premium requests";
@@ -94,6 +95,10 @@
 "copilot.models" = "Usage by model";
 "copilot.quantity.credits" = "%@ credits";
 "copilot.quantity.requests" = "%@ requests";
+"copilot.credits" = "Credits";
+"copilot.used" = "used";
+"copilot.resetsAt" = "Resets %@";
+"copilot.creditProgress" = "%@ of %@ credits";
 
 "notification.highUsage" = "High Codex usage";
 "notification.unknownUsage" = "Unknown usage";
@@ -123,6 +128,9 @@
 "settings.copilot.loginHelp" = "GitHub connects with a device code. AI Usage MB does not request repository access.";
 "settings.copilot.enterCode" = "Enter this code on GitHub:";
 "settings.section.codexDisplay" = "Codex in the menu bar";
+"settings.section.copilotDisplay" = "Copilot in the menu bar";
+"settings.showCopilotCredits" = "Show credits in the menu bar";
+"settings.showCopilotUsagePercentage" = "Show usage percentage in the menu bar";
 "about.windowTitle" = "AI Usage MB — About";
 "about.versionLabel" = "Version";
 "about.developer" = "Developer";

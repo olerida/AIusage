@@ -56,6 +56,23 @@ final class CopilotUsageTests: XCTestCase {
         XCTAssertEqual(report.totalAmount, 0.56, accuracy: 0.0001)
     }
 
+    func testDecodesCopilotPlanQuotaAndReset() throws {
+        let data = Data(
+            #"{"copilot_plan":"individual_max","access_type_sku":"max_monthly_subscriber_quota","quota_reset_date":"2026-10-01","quota_reset_date_utc":"2026-10-01T00:00:00.000Z","quota_snapshots":{"premium_interactions":{"entitlement":20000,"quota_remaining":12741.6,"percent_remaining":63.7,"credits_used":7258,"unlimited":false}}}"#.utf8
+        )
+
+        let entitlement = try JSONDecoder.github.decode(GitHubCopilotEntitlement.self, from: data)
+
+        XCTAssertEqual(entitlement.planDisplayName, "Copilot Max")
+        XCTAssertEqual(entitlement.premiumQuota?.total, 20_000)
+        XCTAssertEqual(entitlement.premiumQuota?.used, 7_258)
+        XCTAssertEqual(entitlement.premiumQuota?.usedPercent ?? -1, 36.3, accuracy: 0.0001)
+        XCTAssertEqual(
+            entitlement.resetAt,
+            ISO8601DateFormatter().date(from: "2026-10-01T00:00:00Z")
+        )
+    }
+
     func testModelBreakdownUsesPremiumRequestsWithoutDoubleCountingCredits() {
         let premium = report(items: [
             item(model: "gpt-5", quantity: 8),
@@ -88,6 +105,134 @@ final class CopilotUsageTests: XCTestCase {
         XCTAssertTrue(snapshot.modelUsage.isEmpty)
     }
 
+    func testCachedSnapshotWithoutEntitlementStillDecodes() throws {
+        let data = Data(
+            #"{"account":{"login":"olerida"},"fetchedAt":"2026-09-16T07:00:00Z"}"#.utf8
+        )
+
+        let snapshot = try JSONDecoder.github.decode(CopilotUsageSnapshot.self, from: data)
+
+        XCTAssertEqual(snapshot.account.login, "olerida")
+        XCTAssertNil(snapshot.entitlement)
+    }
+
+    func testGitHubCredentialCacheReadsKeychainOnlyOnce() throws {
+        let credentials = GitHubCredentials(
+            accessToken: "token",
+            tokenType: "bearer",
+            scope: nil,
+            expiresAt: nil,
+            refreshToken: nil,
+            refreshTokenExpiresAt: nil
+        )
+        var reads = 0
+        var cache = GitHubCredentialMemoryCache()
+
+        XCTAssertEqual(try cache.load {
+            reads += 1
+            return credentials
+        }, credentials)
+        XCTAssertEqual(try cache.load {
+            reads += 1
+            return nil
+        }, credentials)
+        XCTAssertEqual(reads, 1)
+    }
+
+    func testGitHubCredentialCacheDoesNotRepeatFailedKeychainAccess() {
+        enum TestError: Error { case denied }
+        var reads = 0
+        var cache = GitHubCredentialMemoryCache()
+
+        XCTAssertThrowsError(try cache.load {
+            reads += 1
+            throw TestError.denied
+        })
+        XCTAssertThrowsError(try cache.load {
+            reads += 1
+            return nil
+        })
+        XCTAssertEqual(reads, 1)
+    }
+
+    func testGitHubCredentialCacheCanBeUpdatedAndClearedWithoutKeychainRead() throws {
+        let credentials = GitHubCredentials(
+            accessToken: "updated-token",
+            tokenType: "bearer",
+            scope: nil,
+            expiresAt: nil,
+            refreshToken: nil,
+            refreshTokenExpiresAt: nil
+        )
+        var reads = 0
+        var cache = GitHubCredentialMemoryCache()
+
+        cache.store(credentials)
+        XCTAssertEqual(try cache.load {
+            reads += 1
+            return nil
+        }, credentials)
+        cache.clear()
+        XCTAssertNil(try cache.load {
+            reads += 1
+            return credentials
+        })
+        XCTAssertEqual(reads, 0)
+    }
+
+    @MainActor
+    func testCopilotMenuBarTogglesMatchCodexBehavior() {
+        let previousCredits = AppSettings.showCopilotCreditsInMenuBar
+        let previousPercentage = AppSettings.showCopilotUsagePercentageInMenuBar
+        defer {
+            AppSettings.showCopilotCreditsInMenuBar = previousCredits
+            AppSettings.showCopilotUsagePercentageInMenuBar = previousPercentage
+        }
+
+        let entitlement = GitHubCopilotEntitlement(
+            copilotPlan: "individual_max",
+            accessTypeSKU: "max_monthly_subscriber_quota",
+            quotaResetDate: "2026-10-01",
+            quotaResetDateUTC: "2026-10-01T00:00:00.000Z",
+            quotaSnapshots: [
+                "premium_interactions": .init(
+                    entitlement: 20_000,
+                    remaining: 12_741,
+                    quotaRemaining: 12_741.6,
+                    percentRemaining: 63.7,
+                    creditsUsed: 7_258,
+                    unlimited: false
+                )
+            ]
+        )
+        let store = UsageStore(
+            previewAgent: .githubCopilot,
+            state: .ready,
+            copilotSnapshot: CopilotUsageSnapshot(
+                account: GitHubAccount(login: "olerida", name: nil, avatarURL: nil, htmlURL: nil),
+                premiumRequests: nil,
+                aiCredits: nil,
+                entitlement: entitlement,
+                fetchedAt: Date()
+            )
+        )
+
+        store.setShowCopilotCreditsInMenuBar(true)
+        store.setShowCopilotUsagePercentageInMenuBar(false)
+        XCTAssertEqual(store.statusText.filter(\.isNumber), "7258")
+
+        store.setShowCopilotCreditsInMenuBar(false)
+        store.setShowCopilotUsagePercentageInMenuBar(true)
+        XCTAssertEqual(store.statusText, "36%")
+
+        store.setShowCopilotCreditsInMenuBar(true)
+        XCTAssertTrue(store.statusText.hasSuffix(" · 36%"))
+
+        store.setShowCopilotCreditsInMenuBar(false)
+        store.setShowCopilotUsagePercentageInMenuBar(false)
+        XCTAssertEqual(store.statusText, "")
+    }
+
     func testDeviceFlowSendsOnlyThePublicClientID() async throws {
         GitHubURLProtocol.handler = { request in
             XCTAssertEqual(request.url?.absoluteString, "https://github.com/login/device/code")
@@ -113,9 +258,9 @@ final class CopilotUsageTests: XCTestCase {
     func testFetchSnapshotUsesPersonalBillingRoutesAndOmitsUnavailableReport() async throws {
         GitHubURLProtocol.handler = { request in
             XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer user-token")
-            XCTAssertEqual(request.value(forHTTPHeaderField: "X-GitHub-Api-Version"), "2026-03-10")
             switch request.url?.path {
             case "/user":
+                XCTAssertEqual(request.value(forHTTPHeaderField: "X-GitHub-Api-Version"), "2026-03-10")
                 return GitHubURLProtocol.response(
                     for: request,
                     status: 200,
@@ -133,6 +278,13 @@ final class CopilotUsageTests: XCTestCase {
                 )
             case "/users/olerida/settings/billing/ai_credit/usage":
                 return GitHubURLProtocol.response(for: request, status: 404, json: #"{"message":"Not Found"}"#)
+            case "/copilot_internal/user":
+                XCTAssertEqual(request.value(forHTTPHeaderField: "X-GitHub-Api-Version"), "2025-05-01")
+                return GitHubURLProtocol.response(
+                    for: request,
+                    status: 200,
+                    json: #"{"copilot_plan":"individual_max","access_type_sku":"max_monthly_subscriber_quota","quota_reset_date_utc":"2026-10-01T00:00:00.000Z","quota_snapshots":{"premium_interactions":{"entitlement":20000,"percent_remaining":63.7,"credits_used":7258}}}"#
+                )
             default:
                 XCTFail("Unexpected GitHub route: \(request.url?.absoluteString ?? "nil")")
                 return GitHubURLProtocol.response(for: request, status: 500, json: #"{"message":"Unexpected"}"#)
@@ -159,6 +311,8 @@ final class CopilotUsageTests: XCTestCase {
         XCTAssertEqual(snapshot.modelUsage, [
             CopilotModelUsage(model: "GPT-5", quantity: 7, unitType: "requests")
         ])
+        XCTAssertEqual(snapshot.entitlement?.planDisplayName, "Copilot Max")
+        XCTAssertEqual(snapshot.entitlement?.premiumQuota?.usedPercent ?? -1, 36.3, accuracy: 0.0001)
         XCTAssertEqual(returnedCredentials, credentials)
     }
 

@@ -15,10 +15,13 @@ final class UsageStore: ObservableObject {
     @Published private(set) var isAuthenticatingCopilot = false
     @Published private(set) var showFiveHourPercentageInMenuBar = AppSettings.showFiveHourPercentageInMenuBar
     @Published private(set) var showWeeklyPercentageInMenuBar = AppSettings.showWeeklyPercentageInMenuBar
+    @Published private(set) var showCopilotCreditsInMenuBar = AppSettings.showCopilotCreditsInMenuBar
+    @Published private(set) var showCopilotUsagePercentageInMenuBar = AppSettings.showCopilotUsagePercentageInMenuBar
 
     private var client: CodexAppServerClient?
     private var refreshTask: Task<Void, Never>?
     private var refreshRequested = false
+    private var githubCredentialCache = GitHubCredentialMemoryCache()
     private let notificationService = NotificationService()
     private let codexSessionScanner = CodexSessionUsageScanner(
         homeDirectory: AppSettings.localCodexHomeDirectory
@@ -123,6 +126,16 @@ final class UsageStore: ObservableObject {
         showWeeklyPercentageInMenuBar = enabled
     }
 
+    func setShowCopilotCreditsInMenuBar(_ enabled: Bool) {
+        AppSettings.showCopilotCreditsInMenuBar = enabled
+        showCopilotCreditsInMenuBar = enabled
+    }
+
+    func setShowCopilotUsagePercentageInMenuBar(_ enabled: Bool) {
+        AppSettings.showCopilotUsagePercentageInMenuBar = enabled
+        showCopilotUsagePercentageInMenuBar = enabled
+    }
+
     func openUsage() {
         _ = WorkspaceActions.openUsage(for: selectedAgent)
     }
@@ -159,13 +172,21 @@ final class UsageStore: ObservableObject {
             }
             return parts.joined(separator: " · ")
         case .githubCopilot:
-            if let report = copilotSnapshot?.premiumRequests, !report.usageItems.isEmpty {
-                return L10n.string("status.premiumRequests", Self.compactNumber(report.totalQuantity))
+            var parts: [String] = []
+            if showCopilotCreditsInMenuBar {
+                if let used = copilotSnapshot?.entitlement?.premiumQuota?.used {
+                    parts.append(L10n.string("status.aiCredits", Self.compactNumber(used)))
+                } else if let report = copilotSnapshot?.aiCredits, !report.usageItems.isEmpty {
+                    parts.append(L10n.string("status.aiCredits", Self.compactNumber(report.totalQuantity)))
+                } else if let report = copilotSnapshot?.premiumRequests, !report.usageItems.isEmpty {
+                    parts.append(L10n.string("status.premiumRequests", Self.compactNumber(report.totalQuantity)))
+                }
             }
-            if let report = copilotSnapshot?.aiCredits, !report.usageItems.isEmpty {
-                return L10n.string("status.aiCredits", Self.compactNumber(report.totalQuantity))
+            if showCopilotUsagePercentageInMenuBar,
+               let usedPercent = copilotSnapshot?.entitlement?.premiumQuota?.usedPercent {
+                parts.append(L10n.string("status.usagePercentage", Int(usedPercent.rounded())))
             }
-            return ""
+            return parts.joined(separator: " · ")
         }
     }
 
@@ -237,7 +258,7 @@ final class UsageStore: ObservableObject {
 
     private func refreshCopilot() async {
         do {
-            guard let credentials = try GitHubTokenStore.load() else {
+            guard let credentials = try githubCredentialCache.load() else {
                 state = .needsLogin
                 lastError = nil
                 return
@@ -245,13 +266,17 @@ final class UsageStore: ObservableObject {
             state = .connecting
             let githubClient = try makeGitHubClient()
             let (newSnapshot, activeCredentials) = try await githubClient.fetchSnapshot(credentials: credentials)
-            if activeCredentials != credentials { try GitHubTokenStore.save(activeCredentials) }
+            if activeCredentials != credentials {
+                try GitHubTokenStore.save(activeCredentials)
+                githubCredentialCache.store(activeCredentials)
+            }
             copilotSnapshot = newSnapshot
             state = .ready
             lastError = nil
             persist(newSnapshot, to: AppSettings.copilotSnapshotURL)
         } catch GitHubCopilotError.unauthorized {
             try? GitHubTokenStore.delete()
+            githubCredentialCache.clear()
             state = .needsLogin
             lastError = GitHubCopilotError.unauthorized.localizedDescription
         } catch {
@@ -292,6 +317,7 @@ final class UsageStore: ObservableObject {
             }
             let credentials = try await githubClient.pollForCredentials(using: authorization)
             try GitHubTokenStore.save(credentials)
+            githubCredentialCache.store(credentials)
             await refresh()
         } catch {
             lastError = error.localizedDescription
@@ -316,6 +342,7 @@ final class UsageStore: ObservableObject {
     private func logoutCopilot() {
         do {
             try GitHubTokenStore.delete()
+            githubCredentialCache.clear()
             copilotSnapshot = nil
             try? FileManager.default.removeItem(at: AppSettings.copilotSnapshotURL)
             state = .needsLogin

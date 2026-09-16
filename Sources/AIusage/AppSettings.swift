@@ -10,6 +10,8 @@ enum AppSettings {
     private static let showPercentagesInMenuBarKey = "showPercentagesInMenuBar"
     private static let showFiveHourPercentageInMenuBarKey = "showFiveHourPercentageInMenuBar"
     private static let showWeeklyPercentageInMenuBarKey = "showWeeklyPercentageInMenuBar"
+    private static let showCopilotCreditsInMenuBarKey = "showCopilotCreditsInMenuBar"
+    private static let showCopilotUsagePercentageInMenuBarKey = "showCopilotUsagePercentageInMenuBar"
     private static let alertedKeysKey = "alertedKeys"
     private static let selectedAgentKey = "selectedAgent"
 
@@ -63,6 +65,16 @@ enum AppSettings {
             migratedBool(forKey: showWeeklyPercentageInMenuBarKey, default: showPercentagesInMenuBar)
         }
         set { UserDefaults.standard.set(newValue, forKey: showWeeklyPercentageInMenuBarKey) }
+    }
+
+    static var showCopilotCreditsInMenuBar: Bool {
+        get { migratedBool(forKey: showCopilotCreditsInMenuBarKey, default: true) }
+        set { UserDefaults.standard.set(newValue, forKey: showCopilotCreditsInMenuBarKey) }
+    }
+
+    static var showCopilotUsagePercentageInMenuBar: Bool {
+        get { migratedBool(forKey: showCopilotUsagePercentageInMenuBarKey, default: false) }
+        set { UserDefaults.standard.set(newValue, forKey: showCopilotUsagePercentageInMenuBarKey) }
     }
 
     static var alertedKeys: Set<String> {

@@ -57,6 +57,44 @@ enum GitHubTokenStore {
     }
 }
 
+struct GitHubCredentialMemoryCache {
+    private enum State {
+        case unloaded
+        case loaded(GitHubCredentials?)
+        case failed(any Error)
+    }
+
+    private var state: State = .unloaded
+
+    mutating func load(
+        using loader: () throws -> GitHubCredentials? = GitHubTokenStore.load
+    ) throws -> GitHubCredentials? {
+        switch state {
+        case .loaded(let credentials):
+            return credentials
+        case .failed(let error):
+            throw error
+        case .unloaded:
+            do {
+                let credentials = try loader()
+                state = .loaded(credentials)
+                return credentials
+            } catch {
+                state = .failed(error)
+                throw error
+            }
+        }
+    }
+
+    mutating func store(_ credentials: GitHubCredentials) {
+        state = .loaded(credentials)
+    }
+
+    mutating func clear() {
+        state = .loaded(nil)
+    }
+}
+
 enum GitHubTokenStoreError: LocalizedError {
     case keychain(OSStatus)
 

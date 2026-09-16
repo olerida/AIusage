@@ -97,11 +97,13 @@ actor GitHubCopilotClient {
             accessToken: activeCredentials.accessToken,
             now: now
         )
+        async let entitlement = fetchCopilotEntitlement(accessToken: activeCredentials.accessToken)
 
         let snapshot = CopilotUsageSnapshot(
             account: account,
             premiumRequests: try await premiumRequests,
             aiCredits: try await aiCredits,
+            entitlement: await entitlement,
             fetchedAt: now
         )
         return (snapshot, activeCredentials)
@@ -129,6 +131,19 @@ actor GitHubCopilotClient {
         )
     }
 
+    private func fetchCopilotEntitlement(accessToken: String) async -> GitHubCopilotEntitlement? {
+        do {
+            return try await getOptional(
+                path: "/copilot_internal/user",
+                accessToken: accessToken,
+                unavailableStatuses: [401, 403, 404],
+                apiVersion: "2025-05-01"
+            )
+        } catch {
+            return nil
+        }
+    }
+
     private func get<T: Decodable>(path: String, accessToken: String) async throws -> T {
         let (data, response) = try await request(path: path, accessToken: accessToken)
         guard response.statusCode == 200 else { throw error(for: response.statusCode, data: data) }
@@ -142,9 +157,14 @@ actor GitHubCopilotClient {
     private func getOptional<T: Decodable>(
         path: String,
         accessToken: String,
-        unavailableStatuses: Set<Int>
+        unavailableStatuses: Set<Int>,
+        apiVersion: String = "2026-03-10"
     ) async throws -> T? {
-        let (data, response) = try await request(path: path, accessToken: accessToken)
+        let (data, response) = try await request(
+            path: path,
+            accessToken: accessToken,
+            apiVersion: apiVersion
+        )
         if unavailableStatuses.contains(response.statusCode) {
             if response.statusCode == 403, response.value(forHTTPHeaderField: "X-RateLimit-Remaining") == "0" {
                 throw GitHubCopilotError.remote(L10n.string("error.githubRateLimited"))
@@ -159,13 +179,17 @@ actor GitHubCopilotClient {
         }
     }
 
-    private func request(path: String, accessToken: String) async throws -> (Data, HTTPURLResponse) {
+    private func request(
+        path: String,
+        accessToken: String,
+        apiVersion: String = "2026-03-10"
+    ) async throws -> (Data, HTTPURLResponse) {
         guard let url = URL(string: path, relativeTo: apiBaseURL) else { throw GitHubCopilotError.invalidResponse }
         var request = URLRequest(url: url)
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        request.setValue("2026-03-10", forHTTPHeaderField: "X-GitHub-Api-Version")
-        request.setValue("AIusageMB/1.2.2", forHTTPHeaderField: "User-Agent")
+        request.setValue(apiVersion, forHTTPHeaderField: "X-GitHub-Api-Version")
+        request.setValue("AIusageMB/1.3.0", forHTTPHeaderField: "User-Agent")
         let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else { throw GitHubCopilotError.invalidResponse }
         return (data, httpResponse)
@@ -176,7 +200,7 @@ actor GitHubCopilotClient {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.setValue("AIusageMB/1.2.2", forHTTPHeaderField: "User-Agent")
+        request.setValue("AIusageMB/1.3.0", forHTTPHeaderField: "User-Agent")
         request.httpBody = values
             .sorted { $0.key < $1.key }
             .map { "\(formEncode($0.key))=\(formEncode($0.value))" }

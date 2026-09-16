@@ -2,6 +2,17 @@
 
 All notable changes to AI Usage MB are documented in this file.
 
+## [1.3.0] - 2026-09-16
+
+### Added
+
+- GitHub Copilot plan, credit quota, progress bar, reset date, and independent menu-bar display toggles.
+
+### Fixed
+
+- Prevent repeated Keychain prompts by caching GitHub credentials for the process lifetime.
+- Prevent the empty SwiftUI Settings window from appearing when the menu-bar app starts.
+
 ## [1.2.2] - 2026-09-16
 
 ### Fixed

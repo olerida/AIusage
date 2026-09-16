@@ -388,6 +388,98 @@ struct GitHubAccount: Codable, Equatable {
     }
 }
 
+struct GitHubCopilotEntitlement: Codable, Equatable {
+    struct Quota: Codable, Equatable {
+        let entitlement: Double?
+        let remaining: Double?
+        let quotaRemaining: Double?
+        let percentRemaining: Double?
+        let creditsUsed: Double?
+        let unlimited: Bool?
+
+        var total: Double? {
+            guard let entitlement, entitlement > 0 else { return nil }
+            return entitlement
+        }
+
+        var used: Double? {
+            if let creditsUsed { return max(0, creditsUsed) }
+            guard let total else { return nil }
+            let remainingValue = quotaRemaining ?? remaining
+            return remainingValue.map { max(0, total - $0) }
+        }
+
+        var usedPercent: Double? {
+            if let percentRemaining {
+                return min(100, max(0, 100 - percentRemaining))
+            }
+            guard let used, let total, total > 0 else { return nil }
+            return min(100, max(0, used / total * 100))
+        }
+    }
+
+    let copilotPlan: String?
+    let accessTypeSKU: String?
+    let quotaResetDate: String?
+    let quotaResetDateUTC: String?
+    let quotaSnapshots: [String: Quota]?
+
+    enum CodingKeys: String, CodingKey {
+        case copilotPlan
+        case accessTypeSKU = "accessTypeSku"
+        case quotaResetDate
+        case quotaResetDateUTC = "quotaResetDateUtc"
+        case quotaSnapshots
+    }
+
+    var premiumQuota: Quota? {
+        quotaSnapshots?["premium_interactions"]
+    }
+
+    var planDisplayName: String {
+        let key = [copilotPlan, accessTypeSKU]
+            .compactMap { $0?.lowercased() }
+            .joined(separator: " ")
+        if key.contains("max") { return "Copilot Max" }
+        if key.contains("pro_plus") || key.contains("pro-plus") || key.contains("pro+") {
+            return "Copilot Pro+"
+        }
+        if key.contains("student") || key.contains("edu") { return "Copilot Student" }
+        if key.contains("enterprise") { return "Copilot Enterprise" }
+        if key.contains("business") { return "Copilot Business" }
+        if key.contains("free") { return "Copilot Free" }
+        if key.contains("individual") || key.contains("pro") { return "Copilot Pro" }
+        return "GitHub Copilot"
+    }
+
+    var resetAt: Date? {
+        if let quotaResetDateUTC,
+           let date = Self.iso8601WithFractionalSeconds.date(from: quotaResetDateUTC)
+            ?? Self.iso8601.date(from: quotaResetDateUTC) {
+            return date
+        }
+        guard let quotaResetDate else { return nil }
+        return Self.dateOnly.date(from: quotaResetDate)
+    }
+
+    private static let iso8601WithFractionalSeconds: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let iso8601 = ISO8601DateFormatter()
+
+    private static let dateOnly: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+}
+
 struct GitHubBillingUsageReport: Codable, Equatable {
     struct TimePeriod: Codable, Equatable {
         let year: Int?
@@ -445,7 +537,22 @@ struct CopilotUsageSnapshot: Codable, Equatable {
     let account: GitHubAccount
     let premiumRequests: GitHubBillingUsageReport?
     let aiCredits: GitHubBillingUsageReport?
+    let entitlement: GitHubCopilotEntitlement?
     let fetchedAt: Date
+
+    init(
+        account: GitHubAccount,
+        premiumRequests: GitHubBillingUsageReport?,
+        aiCredits: GitHubBillingUsageReport?,
+        entitlement: GitHubCopilotEntitlement? = nil,
+        fetchedAt: Date
+    ) {
+        self.account = account
+        self.premiumRequests = premiumRequests
+        self.aiCredits = aiCredits
+        self.entitlement = entitlement
+        self.fetchedAt = fetchedAt
+    }
 
     var totalNetAmount: Double {
         [premiumRequests, aiCredits].compactMap { $0 }.reduce(0) { $0 + $1.totalAmount }

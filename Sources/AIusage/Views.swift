@@ -707,6 +707,10 @@ struct CopilotUsageView: View {
     let snapshot: CopilotUsageSnapshot
 
     var body: some View {
+        if let entitlement = snapshot.entitlement {
+            CopilotQuotaCard(entitlement: entitlement)
+        }
+
         if snapshot.premiumRequests != nil || snapshot.aiCredits != nil {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
@@ -798,6 +802,64 @@ struct CopilotUsageView: View {
     }
 }
 
+private struct CopilotQuotaCard: View {
+    let entitlement: GitHubCopilotEntitlement
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(entitlement.planDisplayName)
+                .font(.headline)
+
+            Divider()
+
+            HStack(alignment: .firstTextBaseline) {
+                Text(L10n.string("copilot.credits"))
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                if let resetAt = entitlement.resetAt {
+                    Text(L10n.string(
+                        "copilot.resetsAt",
+                        resetAt.formatted(.dateTime.day().month(.abbreviated).hour().minute())
+                    ))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+            }
+
+            if let quota = entitlement.premiumQuota,
+               let usedPercent = quota.usedPercent {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text("\(Int(usedPercent.rounded()))%")
+                        .font(.title2.weight(.bold))
+                        .monospacedDigit()
+                    Text(L10n.string("copilot.used"))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    if let used = quota.used, let total = quota.total {
+                        Text(L10n.string(
+                            "copilot.creditProgress",
+                            formatNumber(used),
+                            formatNumber(total)
+                        ))
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                    }
+                }
+
+                ProgressView(value: usedPercent / 100)
+                    .tint(.accentColor)
+            }
+        }
+        .padding(11)
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func formatNumber(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(value.rounded() == value ? 0 : 1)))
+    }
+}
+
 private struct CopilotMetricCard: View {
     let title: String
     let value: String
@@ -846,23 +908,39 @@ struct EmptyStateView: View {
     }
 }
 
+enum SettingsTab: Hashable {
+    case agent
+    case general
+}
+
 struct SettingsView: View {
     @ObservedObject var store: UsageStore
     let onClose: () -> Void
+    @State private var selectedTab: SettingsTab
     @State private var codexPath = AppSettings.codexPath ?? ""
     @State private var launchAtLogin = AppSettings.launchAtLogin
     @State private var notificationsEnabled = AppSettings.notificationsEnabled
     @State private var showFiveHourPercentageInMenuBar = AppSettings.showFiveHourPercentageInMenuBar
     @State private var showWeeklyPercentageInMenuBar = AppSettings.showWeeklyPercentageInMenuBar
+    @State private var showCopilotCreditsInMenuBar = AppSettings.showCopilotCreditsInMenuBar
+    @State private var showCopilotUsagePercentageInMenuBar = AppSettings.showCopilotUsagePercentageInMenuBar
     @State private var settingsError: String?
+
+    init(store: UsageStore, onClose: @escaping () -> Void, initialTab: SettingsTab = .agent) {
+        self.store = store
+        self.onClose = onClose
+        _selectedTab = State(initialValue: initialTab)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            TabView {
+            TabView(selection: $selectedTab) {
                 agentTab
                     .tabItem { Label(L10n.string("settings.tab.agent"), systemImage: "cpu") }
+                    .tag(SettingsTab.agent)
                 generalTab
                     .tabItem { Label(L10n.string("settings.tab.general"), systemImage: "gearshape") }
+                    .tag(SettingsTab.general)
             }
 
             Divider()
@@ -995,6 +1073,20 @@ struct SettingsView: View {
                             store.setShowWeeklyPercentageInMenuBar(value)
                         }
                 }
+            } else {
+                Section(L10n.string("settings.section.copilotDisplay")) {
+                    Toggle(L10n.string("settings.showCopilotCredits"), isOn: $showCopilotCreditsInMenuBar)
+                        .onChange(of: showCopilotCreditsInMenuBar) { _, value in
+                            store.setShowCopilotCreditsInMenuBar(value)
+                        }
+                    Toggle(
+                        L10n.string("settings.showCopilotUsagePercentage"),
+                        isOn: $showCopilotUsagePercentageInMenuBar
+                    )
+                    .onChange(of: showCopilotUsagePercentageInMenuBar) { _, value in
+                        store.setShowCopilotUsagePercentageInMenuBar(value)
+                    }
+                }
             }
 
             if let settingsError {
@@ -1032,7 +1124,7 @@ struct AboutView: View {
     let onClose: () -> Void
 
     private var version: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.2.2"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.3.0"
     }
 
     var body: some View {

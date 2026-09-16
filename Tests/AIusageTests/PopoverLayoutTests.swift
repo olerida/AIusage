@@ -41,7 +41,7 @@ final class PopoverLayoutTests: XCTestCase {
         try saveIfRequested(image, name: "codex-model-usage.png")
     }
 
-    func testCopilotPopoverRendersWithinCompactHeight() throws {
+    func testCopilotPopoverRendersWithinMaximumHeight() throws {
         let store = UsageStore(
             previewAgent: .githubCopilot,
             state: .ready,
@@ -54,10 +54,10 @@ final class PopoverLayoutTests: XCTestCase {
             onClose: {},
             onContentHeightChange: { _ in }
         )
-        let image = try render(view, size: NSSize(width: 580, height: 390))
+        let image = try render(view, size: NSSize(width: 580, height: 650))
 
         XCTAssertEqual(image.size.width, 580)
-        XCTAssertEqual(image.size.height, 390)
+        XCTAssertEqual(image.size.height, 650)
         try saveIfRequested(image, name: "copilot-popover.png")
     }
 
@@ -72,6 +72,22 @@ final class PopoverLayoutTests: XCTestCase {
         XCTAssertEqual(image.size.width, 560)
         XCTAssertEqual(image.size.height, 480)
         try saveIfRequested(image, name: "copilot-settings.png")
+    }
+
+    func testCopilotGeneralSettingsRenderAtWindowSize() throws {
+        let store = UsageStore(
+            previewAgent: .githubCopilot,
+            state: .ready,
+            copilotSnapshot: sampleSnapshot
+        )
+        let image = try render(
+            SettingsView(store: store, onClose: {}, initialTab: .general),
+            size: NSSize(width: 560, height: 480)
+        )
+
+        XCTAssertEqual(image.size.width, 560)
+        XCTAssertEqual(image.size.height, 480)
+        try saveIfRequested(image, name: "copilot-general-settings.png")
     }
 
     private var sampleSnapshot: CopilotUsageSnapshot {
@@ -93,6 +109,22 @@ final class PopoverLayoutTests: XCTestCase {
             account: GitHubAccount(login: "olerida", name: "Òscar Lérida", avatarURL: nil, htmlURL: nil),
             premiumRequests: premium,
             aiCredits: credits,
+            entitlement: GitHubCopilotEntitlement(
+                copilotPlan: "individual_max",
+                accessTypeSKU: "max_monthly_subscriber_quota",
+                quotaResetDate: "2026-10-01",
+                quotaResetDateUTC: "2026-10-01T00:00:00.000Z",
+                quotaSnapshots: [
+                    "premium_interactions": .init(
+                        entitlement: 20_000,
+                        remaining: 12_742,
+                        quotaRemaining: 12_741.6,
+                        percentRemaining: 63.7,
+                        creditsUsed: 7_258,
+                        unlimited: false
+                    )
+                ]
+            ),
             fetchedAt: Date()
         )
     }
