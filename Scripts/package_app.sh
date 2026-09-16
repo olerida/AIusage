@@ -25,7 +25,11 @@ cp "$ROOT_DIR/Resources/Info.plist" "$APP_DIR/Contents/Info.plist"
 cp "$ROOT_DIR/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
 cp -R "$RESOURCE_BUNDLE" "$APP_DIR/Contents/Resources/"
 chmod +x "$APP_DIR/Contents/MacOS/$PRODUCT_NAME"
-test -f "$APP_DIR/Contents/Resources/AIusage_AIusage.bundle/Contents/Info.plist"
+if [[ ! -f "$APP_DIR/Contents/Resources/AIusage_AIusage.bundle/Info.plist" \
+   && ! -f "$APP_DIR/Contents/Resources/AIusage_AIusage.bundle/Contents/Info.plist" ]]; then
+  echo "Missing packaged SwiftPM resource bundle" >&2
+  exit 1
+fi
 
 for language in es ca en; do
   if [[ -f "$RESOURCE_BUNDLE/$language.lproj/InfoPlist.strings" ]]; then

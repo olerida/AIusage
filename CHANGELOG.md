@@ -2,6 +2,12 @@
 
 All notable changes to AI Usage MB are documented in this file.
 
+## [1.2.2] - 2026-09-16
+
+### Fixed
+
+- Package validation now accepts both flat and versioned SwiftPM resource-bundle layouts used by supported Xcode releases.
+
 ## [1.2.1] - 2026-09-15
 
 ### Fixed
