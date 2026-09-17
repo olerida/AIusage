@@ -103,6 +103,8 @@
 "notification.highUsage" = "High Codex usage";
 "notification.unknownUsage" = "Unknown usage";
 "notification.body" = "%@: %@. Resets %@.";
+"notification.resetExpiring.title" = "Codex reset expiring soon";
+"notification.resetExpiring.body" = "%@ expires %@ (%@).";
 
 "settings.windowTitle" = "AI Usage MB — Settings";
 "settings.section.codex" = "Codex";
@@ -110,7 +112,13 @@
 "settings.savePath" = "Save path";
 "settings.section.behavior" = "Behavior";
 "settings.launchAtLogin" = "Launch at login";
-"settings.notify" = "Notify above 90%";
+"settings.notify" = "Enable Codex notifications";
+"settings.section.codexNotifications" = "Codex notifications";
+"settings.notificationThreshold.fiveHours" = "5-hour: notify above %d%%";
+"settings.notificationThreshold.weekly" = "Weekly: notify above %d%%";
+"settings.notifyResetExpirations" = "Notify before resets expire";
+"settings.resetExpirationLeadDays.one" = "Reset notice: %d day before";
+"settings.resetExpirationLeadDays.many" = "Reset notice: %d days before";
 "settings.showPercentages" = "Show percentages in the menu bar";
 "settings.showFiveHourPercentage" = "Show 5-hour percentage in the menu bar";
 "settings.showWeeklyPercentage" = "Show weekly percentage in the menu bar";
@@ -118,7 +126,7 @@
 "settings.updateValue" = "Every 60 seconds";
 "settings.section.account" = "Account";
 "settings.chatgptAccount" = "ChatGPT account";
-"settings.tab.agent" = "Agent";
+"settings.tab.agent" = "Account";
 "settings.tab.general" = "General";
 "settings.agent" = "Active agent";
 "settings.agent.help" = "The panel only shows metrics provided by the selected agent.";

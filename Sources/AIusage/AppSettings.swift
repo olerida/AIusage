@@ -6,6 +6,10 @@ enum AppSettings {
     }
     private static let codexPathKey = "codexPath"
     private static let notificationsKey = "notificationsEnabled"
+    private static let fiveHourNotificationThresholdKey = "fiveHourNotificationThreshold"
+    private static let weeklyNotificationThresholdKey = "weeklyNotificationThreshold"
+    private static let resetExpirationNotificationsKey = "resetExpirationNotificationsEnabled"
+    private static let resetExpirationLeadDaysKey = "resetExpirationLeadDays"
     private static let launchAtLoginKey = "launchAtLogin"
     private static let showPercentagesInMenuBarKey = "showPercentagesInMenuBar"
     private static let showFiveHourPercentageInMenuBarKey = "showFiveHourPercentageInMenuBar"
@@ -39,6 +43,26 @@ enum AppSettings {
             migratedBool(forKey: notificationsKey, default: true)
         }
         set { UserDefaults.standard.set(newValue, forKey: notificationsKey) }
+    }
+
+    static var fiveHourNotificationThreshold: Int {
+        get { boundedInteger(forKey: fiveHourNotificationThresholdKey, default: 90, range: 1...99) }
+        set { UserDefaults.standard.set(min(max(newValue, 1), 99), forKey: fiveHourNotificationThresholdKey) }
+    }
+
+    static var weeklyNotificationThreshold: Int {
+        get { boundedInteger(forKey: weeklyNotificationThresholdKey, default: 90, range: 1...99) }
+        set { UserDefaults.standard.set(min(max(newValue, 1), 99), forKey: weeklyNotificationThresholdKey) }
+    }
+
+    static var resetExpirationNotificationsEnabled: Bool {
+        get { migratedBool(forKey: resetExpirationNotificationsKey, default: true) }
+        set { UserDefaults.standard.set(newValue, forKey: resetExpirationNotificationsKey) }
+    }
+
+    static var resetExpirationLeadDays: Int {
+        get { boundedInteger(forKey: resetExpirationLeadDaysKey, default: 3, range: 1...30) }
+        set { UserDefaults.standard.set(min(max(newValue, 1), 30), forKey: resetExpirationLeadDaysKey) }
     }
 
     static var launchAtLogin: Bool {
@@ -146,5 +170,14 @@ enum AppSettings {
         let value = legacyDefaults?.bool(forKey: key) ?? defaultValue
         UserDefaults.standard.set(value, forKey: key)
         return value
+    }
+
+    private static func boundedInteger(
+        forKey key: String,
+        default defaultValue: Int,
+        range: ClosedRange<Int>
+    ) -> Int {
+        guard UserDefaults.standard.object(forKey: key) != nil else { return defaultValue }
+        return min(max(UserDefaults.standard.integer(forKey: key), range.lowerBound), range.upperBound)
     }
 }

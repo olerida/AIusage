@@ -89,7 +89,10 @@ struct UsagePopoverView: View {
                     ForEach(snapshot.windows) { window in
                         UsageWindowCard(window: window)
                     }
-                    ResetCreditsSection(snapshot: snapshot)
+                    ResetCreditsSection(
+                        snapshot: snapshot,
+                        expirationWarningDays: store.resetExpirationLeadDays
+                    )
                     if let tokenUsage = snapshot.tokenUsage {
                         TokenUsageSection(usage: tokenUsage)
                     }
@@ -129,38 +132,44 @@ struct UsagePopoverView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(store.agentTitle)
-                    .font(.headline)
-                if let accountSubtitle = store.accountSubtitle {
-                    Text(accountSubtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text(store.state.label)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center) {
+                Picker(L10n.string("settings.agent"), selection: agentBinding) {
+                    ForEach(AgentKind.allCases) { agent in
+                        Label(agent.displayName, systemImage: agent.systemImage).tag(agent)
+                    }
                 }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .frame(width: 260)
+
+                Spacer()
+                ToolbarIconButton(
+                    systemImage: "info.circle",
+                    label: L10n.string("action.about"),
+                    action: onAbout
+                )
+                ToolbarIconButton(
+                    systemImage: "gearshape",
+                    label: L10n.string("action.settings"),
+                    action: onSettings
+                )
+                ToolbarIconButton(
+                    systemImage: store.isRefreshing ? "arrow.triangle.2.circlepath" : "arrow.clockwise",
+                    label: L10n.string("action.refresh"),
+                    action: { Task { await store.refresh() } }
+                )
+                .disabled(store.isRefreshing)
             }
-            Spacer()
-            ToolbarIconButton(
-                systemImage: "info.circle",
-                label: L10n.string("action.about"),
-                action: onAbout
-            )
-            ToolbarIconButton(
-                systemImage: "gearshape",
-                label: L10n.string("action.settings"),
-                action: onSettings
-            )
-            ToolbarIconButton(
-                systemImage: store.isRefreshing ? "arrow.triangle.2.circlepath" : "arrow.clockwise",
-                label: L10n.string("action.refresh"),
-                action: { Task { await store.refresh() } }
-            )
-            .disabled(store.isRefreshing)
+
+            Text(store.accountSubtitle ?? store.state.label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
+    }
+
+    private var agentBinding: Binding<AgentKind> {
+        Binding(get: { store.selectedAgent }, set: { store.selectAgent($0) })
     }
 
     private var footer: some View {
@@ -222,6 +231,7 @@ struct UsageWindowCard: View {
 
 struct ResetCreditsSection: View {
     let snapshot: UsageSnapshot
+    let expirationWarningDays: Int
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { context in
@@ -253,7 +263,11 @@ struct ResetCreditsSection: View {
                 } else {
                     VStack(spacing: 0) {
                         ForEach(Array(resets.enumerated()), id: \.element.id) { index, reset in
-                            ResetCreditRow(reset: reset, now: context.date)
+                            ResetCreditRow(
+                                reset: reset,
+                                now: context.date,
+                                expirationWarningDays: expirationWarningDays
+                            )
                             if index < resets.count - 1 {
                                 Divider()
                                     .padding(.leading, 13)
@@ -274,9 +288,10 @@ struct ResetCreditsSection: View {
 private struct ResetCreditRow: View {
     let reset: ResetCredit
     let now: Date
+    let expirationWarningDays: Int
 
     private var expiringSoon: Bool {
-        reset.isExpiringSoon(relativeTo: now)
+        reset.expires(withinDays: expirationWarningDays, relativeTo: now)
     }
 
     var body: some View {
@@ -920,6 +935,10 @@ struct SettingsView: View {
     @State private var codexPath = AppSettings.codexPath ?? ""
     @State private var launchAtLogin = AppSettings.launchAtLogin
     @State private var notificationsEnabled = AppSettings.notificationsEnabled
+    @State private var fiveHourNotificationThreshold = AppSettings.fiveHourNotificationThreshold
+    @State private var weeklyNotificationThreshold = AppSettings.weeklyNotificationThreshold
+    @State private var resetExpirationNotificationsEnabled = AppSettings.resetExpirationNotificationsEnabled
+    @State private var resetExpirationLeadDays = AppSettings.resetExpirationLeadDays
     @State private var showFiveHourPercentageInMenuBar = AppSettings.showFiveHourPercentageInMenuBar
     @State private var showWeeklyPercentageInMenuBar = AppSettings.showWeeklyPercentageInMenuBar
     @State private var showCopilotCreditsInMenuBar = AppSettings.showCopilotCreditsInMenuBar
@@ -956,18 +975,6 @@ struct SettingsView: View {
 
     private var agentTab: some View {
         Form {
-            Section {
-                Picker(L10n.string("settings.agent"), selection: agentBinding) {
-                    ForEach(AgentKind.allCases) { agent in
-                        Label(agent.displayName, systemImage: agent.systemImage).tag(agent)
-                    }
-                }
-                .pickerStyle(.segmented)
-                Text(L10n.string("settings.agent.help"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
             if store.selectedAgent == .codex {
                 Section(L10n.string("settings.section.codex")) {
                     HStack {
@@ -1058,34 +1065,75 @@ struct SettingsView: View {
                 LabeledContent(L10n.string("settings.update"), value: L10n.string("settings.updateValue"))
             }
 
-            if store.selectedAgent == .codex {
-                Section(L10n.string("settings.section.codexDisplay")) {
-                    Toggle(L10n.string("settings.notify"), isOn: $notificationsEnabled)
-                        .onChange(of: notificationsEnabled) { _, value in
-                            store.setNotificationsEnabled(value)
-                        }
-                    Toggle(L10n.string("settings.showFiveHourPercentage"), isOn: $showFiveHourPercentageInMenuBar)
-                        .onChange(of: showFiveHourPercentageInMenuBar) { _, value in
-                            store.setShowFiveHourPercentageInMenuBar(value)
-                        }
-                    Toggle(L10n.string("settings.showWeeklyPercentage"), isOn: $showWeeklyPercentageInMenuBar)
-                        .onChange(of: showWeeklyPercentageInMenuBar) { _, value in
-                            store.setShowWeeklyPercentageInMenuBar(value)
-                        }
-                }
-            } else {
-                Section(L10n.string("settings.section.copilotDisplay")) {
-                    Toggle(L10n.string("settings.showCopilotCredits"), isOn: $showCopilotCreditsInMenuBar)
-                        .onChange(of: showCopilotCreditsInMenuBar) { _, value in
-                            store.setShowCopilotCreditsInMenuBar(value)
-                        }
-                    Toggle(
-                        L10n.string("settings.showCopilotUsagePercentage"),
-                        isOn: $showCopilotUsagePercentageInMenuBar
-                    )
-                    .onChange(of: showCopilotUsagePercentageInMenuBar) { _, value in
-                        store.setShowCopilotUsagePercentageInMenuBar(value)
+            Section(L10n.string("settings.section.codexNotifications")) {
+                Toggle(L10n.string("settings.notify"), isOn: $notificationsEnabled)
+                    .onChange(of: notificationsEnabled) { _, value in
+                        store.setNotificationsEnabled(value)
                     }
+                Stepper(value: $fiveHourNotificationThreshold, in: 1...99) {
+                    Text(L10n.string(
+                        "settings.notificationThreshold.fiveHours",
+                        fiveHourNotificationThreshold
+                    ))
+                }
+                .onChange(of: fiveHourNotificationThreshold) { _, value in
+                    store.setFiveHourNotificationThreshold(value)
+                }
+                .disabled(!notificationsEnabled)
+                Stepper(value: $weeklyNotificationThreshold, in: 1...99) {
+                    Text(L10n.string(
+                        "settings.notificationThreshold.weekly",
+                        weeklyNotificationThreshold
+                    ))
+                }
+                .onChange(of: weeklyNotificationThreshold) { _, value in
+                    store.setWeeklyNotificationThreshold(value)
+                }
+                .disabled(!notificationsEnabled)
+                Toggle(
+                    L10n.string("settings.notifyResetExpirations"),
+                    isOn: $resetExpirationNotificationsEnabled
+                )
+                .onChange(of: resetExpirationNotificationsEnabled) { _, value in
+                    store.setResetExpirationNotificationsEnabled(value)
+                }
+                .disabled(!notificationsEnabled)
+                Stepper(value: $resetExpirationLeadDays, in: 1...30) {
+                    Text(L10n.string(
+                        resetExpirationLeadDays == 1
+                            ? "settings.resetExpirationLeadDays.one"
+                            : "settings.resetExpirationLeadDays.many",
+                        resetExpirationLeadDays
+                    ))
+                }
+                .onChange(of: resetExpirationLeadDays) { _, value in
+                    store.setResetExpirationLeadDays(value)
+                }
+                .disabled(!notificationsEnabled || !resetExpirationNotificationsEnabled)
+            }
+
+            Section(L10n.string("settings.section.codexDisplay")) {
+                Toggle(L10n.string("settings.showFiveHourPercentage"), isOn: $showFiveHourPercentageInMenuBar)
+                    .onChange(of: showFiveHourPercentageInMenuBar) { _, value in
+                        store.setShowFiveHourPercentageInMenuBar(value)
+                    }
+                Toggle(L10n.string("settings.showWeeklyPercentage"), isOn: $showWeeklyPercentageInMenuBar)
+                    .onChange(of: showWeeklyPercentageInMenuBar) { _, value in
+                        store.setShowWeeklyPercentageInMenuBar(value)
+                    }
+            }
+
+            Section(L10n.string("settings.section.copilotDisplay")) {
+                Toggle(L10n.string("settings.showCopilotCredits"), isOn: $showCopilotCreditsInMenuBar)
+                    .onChange(of: showCopilotCreditsInMenuBar) { _, value in
+                        store.setShowCopilotCreditsInMenuBar(value)
+                    }
+                Toggle(
+                    L10n.string("settings.showCopilotUsagePercentage"),
+                    isOn: $showCopilotUsagePercentageInMenuBar
+                )
+                .onChange(of: showCopilotUsagePercentageInMenuBar) { _, value in
+                    store.setShowCopilotUsagePercentageInMenuBar(value)
                 }
             }
 
@@ -1097,10 +1145,6 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .padding(.horizontal, 8)
-    }
-
-    private var agentBinding: Binding<AgentKind> {
-        Binding(get: { store.selectedAgent }, set: { store.selectAgent($0) })
     }
 
     private func chooseCodex() {
@@ -1124,7 +1168,7 @@ struct AboutView: View {
     let onClose: () -> Void
 
     private var version: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.3.0"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.4.0"
     }
 
     var body: some View {

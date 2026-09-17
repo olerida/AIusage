@@ -131,7 +131,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func updateStatusItem() {
         guard let button = statusItem?.button else { return }
         button.image = makeUsageIcon()
-        button.contentTintColor = store.hasCriticalWindow ? .systemRed : nil
+        // Let the status bar choose the foreground color so the image and title
+        // remain legible in every menu bar appearance and highlighted state.
+        button.contentTintColor = nil
         button.title = store.statusText
         button.toolTip = store.statusTooltip
         button.imagePosition = .imageLeading

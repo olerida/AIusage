@@ -189,7 +189,7 @@ actor GitHubCopilotClient {
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue(apiVersion, forHTTPHeaderField: "X-GitHub-Api-Version")
-        request.setValue("AIusageMB/1.3.0", forHTTPHeaderField: "User-Agent")
+        request.setValue("AIusageMB/1.4.0", forHTTPHeaderField: "User-Agent")
         let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else { throw GitHubCopilotError.invalidResponse }
         return (data, httpResponse)
@@ -200,7 +200,7 @@ actor GitHubCopilotClient {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.setValue("AIusageMB/1.3.0", forHTTPHeaderField: "User-Agent")
+        request.setValue("AIusageMB/1.4.0", forHTTPHeaderField: "User-Agent")
         request.httpBody = values
             .sorted { $0.key < $1.key }
             .map { "\(formEncode($0.key))=\(formEncode($0.value))" }

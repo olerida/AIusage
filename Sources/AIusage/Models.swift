@@ -291,6 +291,11 @@ struct UsageWindow: Codable, Equatable, Identifiable {
         (usedPercent ?? 0) > 90
     }
 
+    func exceedsNotificationThreshold(_ threshold: Int) -> Bool {
+        guard let usedPercent else { return false }
+        return usedPercent > Double(threshold)
+    }
+
     var alertKey: String {
         let resetKey = resetsAt.map { String(Int($0.timeIntervalSince1970)) } ?? "none"
         return "\(id):\(resetKey)"
@@ -305,13 +310,24 @@ struct ResetCredit: Codable, Equatable, Identifiable {
     let title: String
     let description: String?
 
-    func isExpiringSoon(relativeTo date: Date = Date()) -> Bool {
+    func expires(withinDays days: Int, relativeTo date: Date = Date()) -> Bool {
         guard let expiresAt else { return false }
-        return expiresAt.timeIntervalSince(date) <= 3 * 24 * 60 * 60
+        let remaining = expiresAt.timeIntervalSince(date)
+        return remaining > 0 && remaining <= Double(days) * 24 * 60 * 60
+    }
+
+    var expirationAlertKey: String {
+        let expiry = expiresAt.map { String(Int($0.timeIntervalSince1970)) } ?? "none"
+        return "reset-expiry:\(id):\(expiry)"
     }
 
     init(payload: ResetCreditPayload) {
-        id = payload.id ?? UUID().uuidString
+        let stableFallbackID = [
+            payload.resetType ?? "usage",
+            payload.title ?? "untitled",
+            payload.expiresAt.map(String.init) ?? "none"
+        ].joined(separator: ":")
+        id = payload.id ?? stableFallbackID
         status = payload.status
         grantedAt = payload.grantedAt.map { Date(timeIntervalSince1970: TimeInterval($0)) }
         expiresAt = payload.expiresAt.map { Date(timeIntervalSince1970: TimeInterval($0)) }

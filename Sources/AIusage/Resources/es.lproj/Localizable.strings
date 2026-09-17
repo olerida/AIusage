@@ -103,6 +103,8 @@
 "notification.highUsage" = "Uso alto de Codex";
 "notification.unknownUsage" = "Uso desconocido";
 "notification.body" = "%@: %@. Se restablece %@.";
+"notification.resetExpiring.title" = "Reset de Codex próximo a caducar";
+"notification.resetExpiring.body" = "%@ caduca %@ (%@).";
 
 "settings.windowTitle" = "AI Usage MB — Ajustes";
 "settings.section.codex" = "Codex";
@@ -110,7 +112,13 @@
 "settings.savePath" = "Guardar ruta";
 "settings.section.behavior" = "Comportamiento";
 "settings.launchAtLogin" = "Iniciar con macOS";
-"settings.notify" = "Notificar al superar el 90%";
+"settings.notify" = "Activar notificaciones de Codex";
+"settings.section.codexNotifications" = "Notificaciones de Codex";
+"settings.notificationThreshold.fiveHours" = "5 horas: avisar al superar el %d%%";
+"settings.notificationThreshold.weekly" = "Semanal: avisar al superar el %d%%";
+"settings.notifyResetExpirations" = "Avisar antes de que caduquen los resets";
+"settings.resetExpirationLeadDays.one" = "Antelación para resets: %d día";
+"settings.resetExpirationLeadDays.many" = "Antelación para resets: %d días";
 "settings.showPercentages" = "Mostrar porcentajes en la barra";
 "settings.showFiveHourPercentage" = "Mostrar porcentaje de 5 h en la barra";
 "settings.showWeeklyPercentage" = "Mostrar porcentaje semanal en la barra";
@@ -118,7 +126,7 @@
 "settings.updateValue" = "Cada 60 segundos";
 "settings.section.account" = "Cuenta";
 "settings.chatgptAccount" = "Cuenta ChatGPT";
-"settings.tab.agent" = "Agente";
+"settings.tab.agent" = "Cuenta";
 "settings.tab.general" = "General";
 "settings.agent" = "Agente activo";
 "settings.agent.help" = "El panel solo muestra las métricas que ofrece el agente seleccionado.";

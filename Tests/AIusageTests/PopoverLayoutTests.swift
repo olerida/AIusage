@@ -90,6 +90,22 @@ final class PopoverLayoutTests: XCTestCase {
         try saveIfRequested(image, name: "copilot-general-settings.png")
     }
 
+    func testCodexGeneralSettingsRenderAtWindowSize() throws {
+        let store = UsageStore(
+            previewAgent: .codex,
+            state: .ready,
+            account: AccountInfo(type: "chatgpt", email: "home@titanolandia.es", planType: "plus")
+        )
+        let image = try render(
+            SettingsView(store: store, onClose: {}, initialTab: .general),
+            size: NSSize(width: 560, height: 480)
+        )
+
+        XCTAssertEqual(image.size.width, 560)
+        XCTAssertEqual(image.size.height, 480)
+        try saveIfRequested(image, name: "codex-general-settings.png")
+    }
+
     private var sampleSnapshot: CopilotUsageSnapshot {
         let premium = GitHubBillingUsageReport(
             timePeriod: .init(year: 2026, month: 9, day: nil),

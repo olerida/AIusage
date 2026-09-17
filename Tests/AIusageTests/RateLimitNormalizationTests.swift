@@ -83,9 +83,9 @@ final class RateLimitNormalizationTests: XCTestCase {
             description: nil
         ))
 
-        XCTAssertTrue(reset.isExpiringSoon(relativeTo: now))
-        XCTAssertFalse(later.isExpiringSoon(relativeTo: now))
-        XCTAssertFalse(withoutExpiry.isExpiringSoon(relativeTo: now))
+        XCTAssertTrue(reset.expires(withinDays: 3, relativeTo: now))
+        XCTAssertFalse(later.expires(withinDays: 3, relativeTo: now))
+        XCTAssertFalse(withoutExpiry.expires(withinDays: 3, relativeTo: now))
     }
 
     func testDecodesDailyTokenUsageBuckets() throws {
@@ -125,5 +125,7 @@ final class UsageWindowTests: XCTestCase {
     func testExactlyNinetyPercentIsNotCritical() {
         let window = UsageWindow(id: "weekly", kind: .weekly, label: "Semanal", durationMinutes: 10080, usedPercent: 90, resetsAt: nil)
         XCTAssertFalse(window.isCritical)
+        XCTAssertFalse(window.exceedsNotificationThreshold(90))
+        XCTAssertTrue(window.exceedsNotificationThreshold(89))
     }
 }

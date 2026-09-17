@@ -2,6 +2,25 @@
 
 All notable changes to AI Usage MB are documented in this file.
 
+## [1.4.0] - 2026-09-17
+
+### Added
+
+- Independent notification thresholds for the 5-hour and weekly Codex windows.
+- Configurable notifications before saved reset credits expire.
+- Continuous Codex alert monitoring while GitHub Copilot is the visible agent.
+
+### Changed
+
+- The active-agent picker now lives in the main panel instead of Settings.
+- Codex and Copilot display settings are always available in the General tab.
+- Notification permission is requested when notifications are enabled.
+
+### Fixed
+
+- Alerts are recorded only after macOS accepts them, so disabled or failed notifications can retry.
+- Codex menu-bar content now follows the system foreground color and remains visible in every appearance.
+
 ## [1.3.0] - 2026-09-16
 
 ### Added

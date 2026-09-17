@@ -13,6 +13,11 @@ final class UsageStore: ObservableObject {
     @Published private(set) var lastError: String?
     @Published private(set) var isRefreshing = false
     @Published private(set) var isAuthenticatingCopilot = false
+    @Published private(set) var notificationsEnabled = AppSettings.notificationsEnabled
+    @Published private(set) var fiveHourNotificationThreshold = AppSettings.fiveHourNotificationThreshold
+    @Published private(set) var weeklyNotificationThreshold = AppSettings.weeklyNotificationThreshold
+    @Published private(set) var resetExpirationNotificationsEnabled = AppSettings.resetExpirationNotificationsEnabled
+    @Published private(set) var resetExpirationLeadDays = AppSettings.resetExpirationLeadDays
     @Published private(set) var showFiveHourPercentageInMenuBar = AppSettings.showFiveHourPercentageInMenuBar
     @Published private(set) var showWeeklyPercentageInMenuBar = AppSettings.showWeeklyPercentageInMenuBar
     @Published private(set) var showCopilotCreditsInMenuBar = AppSettings.showCopilotCreditsInMenuBar
@@ -21,13 +26,20 @@ final class UsageStore: ObservableObject {
     private var client: CodexAppServerClient?
     private var refreshTask: Task<Void, Never>?
     private var refreshRequested = false
+    private var pendingAlertKeys: Set<String> = []
     private var githubCredentialCache = GitHubCredentialMemoryCache()
-    private let notificationService = NotificationService()
+    private let notificationService: any NotificationDelivering
     private let codexSessionScanner = CodexSessionUsageScanner(
         homeDirectory: AppSettings.localCodexHomeDirectory
     )
 
     init() {
+        notificationService = NotificationService()
+        loadCachedSnapshots()
+    }
+
+    init(notificationService: any NotificationDelivering) {
+        self.notificationService = notificationService
         loadCachedSnapshots()
     }
 
@@ -38,6 +50,7 @@ final class UsageStore: ObservableObject {
         snapshot: UsageSnapshot? = nil,
         copilotSnapshot: CopilotUsageSnapshot? = nil
     ) {
+        notificationService = NotificationService()
         selectedAgent = previewAgent
         self.state = state
         self.account = account
@@ -84,7 +97,9 @@ final class UsageStore: ObservableObject {
             let refreshingAgent = selectedAgent
             switch refreshingAgent {
             case .codex: await refreshCodex()
-            case .githubCopilot: await refreshCopilot()
+            case .githubCopilot:
+                await refreshCopilot()
+                await refreshCodexAlerts()
             }
             if refreshingAgent != selectedAgent { refreshRequested = true }
         } while refreshRequested
@@ -114,6 +129,36 @@ final class UsageStore: ObservableObject {
 
     func setNotificationsEnabled(_ enabled: Bool) {
         AppSettings.notificationsEnabled = enabled
+        notificationsEnabled = enabled
+        guard enabled else { return }
+        Task { @MainActor [weak self, notificationService] in
+            guard await notificationService.requestAuthorization() else { return }
+            await self?.refreshCodexAlerts()
+        }
+    }
+
+    func setFiveHourNotificationThreshold(_ threshold: Int) {
+        AppSettings.fiveHourNotificationThreshold = threshold
+        fiveHourNotificationThreshold = AppSettings.fiveHourNotificationThreshold
+        scheduleCodexAlertRefresh()
+    }
+
+    func setWeeklyNotificationThreshold(_ threshold: Int) {
+        AppSettings.weeklyNotificationThreshold = threshold
+        weeklyNotificationThreshold = AppSettings.weeklyNotificationThreshold
+        scheduleCodexAlertRefresh()
+    }
+
+    func setResetExpirationNotificationsEnabled(_ enabled: Bool) {
+        AppSettings.resetExpirationNotificationsEnabled = enabled
+        resetExpirationNotificationsEnabled = enabled
+        if enabled { scheduleCodexAlertRefresh() }
+    }
+
+    func setResetExpirationLeadDays(_ days: Int) {
+        AppSettings.resetExpirationLeadDays = days
+        resetExpirationLeadDays = AppSettings.resetExpirationLeadDays
+        scheduleCodexAlertRefresh()
     }
 
     func setShowFiveHourPercentageInMenuBar(_ enabled: Bool) {
@@ -190,10 +235,6 @@ final class UsageStore: ObservableObject {
         }
     }
 
-    var hasCriticalWindow: Bool {
-        selectedAgent == .codex && snapshot?.windows.contains(where: { $0.isCritical }) == true
-    }
-
     var statusTooltip: String {
         var lines = [agentTitle, state.label]
         if let fetchedAt = selectedFetchedAt {
@@ -246,7 +287,11 @@ final class UsageStore: ObservableObject {
             state = .ready
             lastError = nil
             persist(newSnapshot, to: AppSettings.snapshotURL)
-            evaluateAlerts(for: newSnapshot.windows)
+            await evaluateAlerts(
+                for: newSnapshot.windows,
+                resets: newSnapshot.resets,
+                now: newSnapshot.fetchedAt
+            )
         } catch AppServerError.executableNotFound {
             state = .needsCodex
             lastError = AppServerError.executableNotFound.localizedDescription
@@ -353,18 +398,22 @@ final class UsageStore: ObservableObject {
         }
     }
 
-    private func ensureClient() async throws {
+    private func ensureClient(updatesVisibleState: Bool = true) async throws {
         if let client, client.isRunning { return }
         guard let executable = CodexExecutableResolver.resolve(customPath: AppSettings.codexPath) else {
             throw AppServerError.executableNotFound
         }
 
-        state = .connecting
+        if updatesVisibleState, selectedAgent == .codex { state = .connecting }
         let client = CodexAppServerClient(executableURL: executable)
         client.onRateLimitNotification = { [weak self] _ in
             Task { @MainActor [weak self] in
-                guard self?.selectedAgent == .codex else { return }
-                await self?.refresh()
+                guard let self else { return }
+                if self.selectedAgent == .codex {
+                    await self.refresh()
+                } else {
+                    await self.refreshCodexAlerts()
+                }
             }
         }
         try await client.start()
@@ -376,15 +425,76 @@ final class UsageStore: ObservableObject {
         return GitHubCopilotClient(clientID: clientID)
     }
 
-    private func evaluateAlerts(for windows: [UsageWindow]) {
-        var alertedKeys = AppSettings.alertedKeys
-        for window in windows where window.isCritical {
-            guard !alertedKeys.contains(window.alertKey) else { continue }
-            alertedKeys.insert(window.alertKey)
-            Task { @MainActor [notificationService] in
-                await notificationService.sendCriticalAlert(for: window)
+    private func scheduleCodexAlertRefresh() {
+        guard AppSettings.notificationsEnabled else { return }
+        Task { @MainActor [weak self] in
+            await self?.refreshCodexAlerts()
+        }
+    }
+
+    private func refreshCodexAlerts() async {
+        guard AppSettings.notificationsEnabled else { return }
+        do {
+            try await ensureClient(updatesVisibleState: false)
+            guard let client else { return }
+            let accountResponse = try await client.readAccount()
+            guard accountResponse.account != nil else { return }
+            let limits = try await client.readRateLimits()
+            let now = Date()
+            await evaluateAlerts(
+                for: limits.normalizedWindows(),
+                resets: limits.normalizedResets(relativeTo: now),
+                now: now
+            )
+        } catch {
+            // Background alert checks must not replace the visible agent's state.
+        }
+    }
+
+    func evaluateAlerts(
+        for windows: [UsageWindow],
+        resets: [ResetCredit],
+        now: Date = Date()
+    ) async {
+        guard AppSettings.notificationsEnabled else { return }
+
+        for window in windows {
+            let threshold = notificationThreshold(for: window.kind)
+            guard window.exceedsNotificationThreshold(threshold),
+                  window.resetsAt.map({ $0 > now }) ?? true else { continue }
+            await deliverAlertIfNeeded(key: window.alertKey) { [notificationService] in
+                await notificationService.sendUsageAlert(for: window)
             }
         }
+
+        guard AppSettings.resetExpirationNotificationsEnabled else { return }
+        let leadDays = AppSettings.resetExpirationLeadDays
+        for reset in resets where reset.expires(withinDays: leadDays, relativeTo: now) {
+            await deliverAlertIfNeeded(key: reset.expirationAlertKey) { [notificationService] in
+                await notificationService.sendResetExpirationAlert(for: reset, now: now)
+            }
+        }
+    }
+
+    private func notificationThreshold(for kind: UsageWindow.Kind) -> Int {
+        switch kind {
+        case .fiveHours: return AppSettings.fiveHourNotificationThreshold
+        case .weekly: return AppSettings.weeklyNotificationThreshold
+        case .other: return 90
+        }
+    }
+
+    private func deliverAlertIfNeeded(
+        key: String,
+        delivery: () async -> Bool
+    ) async {
+        guard !AppSettings.alertedKeys.contains(key),
+              pendingAlertKeys.insert(key).inserted else { return }
+        defer { pendingAlertKeys.remove(key) }
+        let delivered = await delivery()
+        guard delivered, AppSettings.notificationsEnabled else { return }
+        var alertedKeys = AppSettings.alertedKeys
+        alertedKeys.insert(key)
         AppSettings.alertedKeys = alertedKeys
     }
 

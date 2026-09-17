@@ -1,1 +1,1 @@
-"NSUserNotificationUsageDescription" = "AI Usage MB te avisa cuando el uso supera el 90%.";
+"NSUserNotificationUsageDescription" = "AI Usage MB te avisa sobre límites de uso y resets próximos a caducar.";

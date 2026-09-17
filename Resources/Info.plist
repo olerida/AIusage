@@ -17,9 +17,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.3.0</string>
+	<string>1.4.0</string>
 	<key>CFBundleVersion</key>
-	<string>6</string>
+	<string>7</string>
 	<key>AIUsageGitHubClientID</key>
 	<string>Iv23lit5xr3nQGeDAeOz</string>
 	<key>LSMinimumSystemVersion</key>
@@ -31,6 +31,6 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSUserNotificationUsageDescription</key>
-	<string>AI Usage MB te avisa cuando el uso supera el 90%.</string>
+	<string>AI Usage MB te avisa sobre límites de uso y resets próximos a caducar.</string>
 </dict>
 </plist>
