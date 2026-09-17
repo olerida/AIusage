@@ -126,7 +126,9 @@
 "settings.updateValue" = "Every 60 seconds";
 "settings.section.account" = "Account";
 "settings.chatgptAccount" = "ChatGPT account";
-"settings.tab.agent" = "Account";
+"settings.githubAccount" = "GitHub account";
+"settings.section.githubCopilot" = "GitHub Copilot";
+"settings.tab.agent" = "Accounts";
 "settings.tab.general" = "General";
 "settings.agent" = "Active agent";
 "settings.agent.help" = "The panel only shows metrics provided by the selected agent.";

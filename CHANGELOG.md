@@ -2,6 +2,17 @@
 
 All notable changes to AI Usage MB are documented in this file.
 
+## [1.4.1] - 2026-09-17
+
+### Changed
+
+- Settings now shows Codex and GitHub Copilot account controls at the same time, independently of the active agent.
+
+### Fixed
+
+- Background GitHub Keychain reads and token refreshes can no longer display authentication dialogs.
+- A failed Keychain write no longer retries every minute or interrupts Copilot usage refreshes.
+
 ## [1.4.0] - 2026-09-17
 
 ### Added

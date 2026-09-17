@@ -13,6 +13,7 @@ final class UsageStore: ObservableObject {
     @Published private(set) var lastError: String?
     @Published private(set) var isRefreshing = false
     @Published private(set) var isAuthenticatingCopilot = false
+    @Published private(set) var hasCopilotCredentials = false
     @Published private(set) var notificationsEnabled = AppSettings.notificationsEnabled
     @Published private(set) var fiveHourNotificationThreshold = AppSettings.fiveHourNotificationThreshold
     @Published private(set) var weeklyNotificationThreshold = AppSettings.weeklyNotificationThreshold
@@ -36,11 +37,13 @@ final class UsageStore: ObservableObject {
     init() {
         notificationService = NotificationService()
         loadCachedSnapshots()
+        loadGitHubCredentialStatus()
     }
 
     init(notificationService: any NotificationDelivering) {
         self.notificationService = notificationService
         loadCachedSnapshots()
+        loadGitHubCredentialStatus()
     }
 
     init(
@@ -56,6 +59,7 @@ final class UsageStore: ObservableObject {
         self.account = account
         self.snapshot = snapshot
         self.copilotSnapshot = copilotSnapshot
+        hasCopilotCredentials = copilotSnapshot != nil
     }
 
     deinit {
@@ -105,15 +109,15 @@ final class UsageStore: ObservableObject {
         } while refreshRequested
     }
 
-    func login() async {
-        switch selectedAgent {
+    func login(_ agent: AgentKind) async {
+        switch agent {
         case .codex: await loginCodex()
         case .githubCopilot: await loginCopilot()
         }
     }
 
-    func logout() async {
-        switch selectedAgent {
+    func logout(_ agent: AgentKind) async {
+        switch agent {
         case .codex: await logoutCodex()
         case .githubCopilot: logoutCopilot()
         }
@@ -255,16 +259,16 @@ final class UsageStore: ObservableObject {
         }
     }
 
-    private func refreshCodex() async {
+    private func refreshCodex(updatesVisibleState: Bool = true) async {
         do {
-            try await ensureClient()
+            try await ensureClient(updatesVisibleState: updatesVisibleState)
             guard let client else { throw AppServerError.notRunning }
-            state = .connecting
+            if updatesVisibleState { state = .connecting }
 
             let accountResponse = try await client.readAccount()
             guard let account = accountResponse.account else {
                 self.account = nil
-                state = .needsLogin
+                if updatesVisibleState { state = .needsLogin }
                 lastError = nil
                 return
             }
@@ -284,7 +288,7 @@ final class UsageStore: ObservableObject {
             )
             self.account = account
             snapshot = newSnapshot
-            state = .ready
+            if updatesVisibleState { state = .ready }
             lastError = nil
             persist(newSnapshot, to: AppSettings.snapshotURL)
             await evaluateAlerts(
@@ -293,60 +297,75 @@ final class UsageStore: ObservableObject {
                 now: newSnapshot.fetchedAt
             )
         } catch AppServerError.executableNotFound {
-            state = .needsCodex
+            if updatesVisibleState { state = .needsCodex }
             lastError = AppServerError.executableNotFound.localizedDescription
         } catch {
             lastError = error.localizedDescription
-            state = snapshot == nil ? .error(error.localizedDescription) : .stale
+            if updatesVisibleState {
+                state = snapshot == nil ? .error(error.localizedDescription) : .stale
+            }
         }
     }
 
-    private func refreshCopilot() async {
+    private func refreshCopilot(updatesVisibleState: Bool = true) async {
         do {
             guard let credentials = try githubCredentialCache.load() else {
-                state = .needsLogin
+                hasCopilotCredentials = false
+                if updatesVisibleState { state = .needsLogin }
                 lastError = nil
                 return
             }
-            state = .connecting
+            hasCopilotCredentials = true
+            if updatesVisibleState { state = .connecting }
             let githubClient = try makeGitHubClient()
             let (newSnapshot, activeCredentials) = try await githubClient.fetchSnapshot(credentials: credentials)
             if activeCredentials != credentials {
-                try GitHubTokenStore.save(activeCredentials)
                 githubCredentialCache.store(activeCredentials)
+                do {
+                    try GitHubTokenStore.save(activeCredentials)
+                } catch {
+                    NSLog("AI Usage MB could not persist refreshed GitHub credentials: %@", error.localizedDescription)
+                }
             }
             copilotSnapshot = newSnapshot
-            state = .ready
+            if updatesVisibleState { state = .ready }
             lastError = nil
             persist(newSnapshot, to: AppSettings.copilotSnapshotURL)
         } catch GitHubCopilotError.unauthorized {
             try? GitHubTokenStore.delete()
             githubCredentialCache.clear()
-            state = .needsLogin
+            hasCopilotCredentials = false
+            copilotSnapshot = nil
+            try? FileManager.default.removeItem(at: AppSettings.copilotSnapshotURL)
+            if updatesVisibleState { state = .needsLogin }
             lastError = GitHubCopilotError.unauthorized.localizedDescription
         } catch {
             lastError = error.localizedDescription
-            state = copilotSnapshot == nil ? .error(error.localizedDescription) : .stale
+            if updatesVisibleState {
+                state = copilotSnapshot == nil ? .error(error.localizedDescription) : .stale
+            }
         }
     }
 
     private func loginCodex() async {
+        let updatesVisibleState = selectedAgent == .codex
         do {
-            try await ensureClient()
+            try await ensureClient(updatesVisibleState: updatesVisibleState)
             guard let client else { throw AppServerError.notRunning }
-            state = .connecting
+            if updatesVisibleState { state = .connecting }
             try await client.login()
-            await refresh()
+            await refreshCodex(updatesVisibleState: updatesVisibleState)
         } catch {
             lastError = error.localizedDescription
-            state = .error(error.localizedDescription)
+            if updatesVisibleState { state = .error(error.localizedDescription) }
         }
     }
 
     private func loginCopilot() async {
         guard !isAuthenticatingCopilot else { return }
+        let updatesVisibleState = selectedAgent == .githubCopilot
         isAuthenticatingCopilot = true
-        state = .connecting
+        if updatesVisibleState { state = .connecting }
         lastError = nil
         defer {
             isAuthenticatingCopilot = false
@@ -361,12 +380,13 @@ final class UsageStore: ObservableObject {
                 throw GitHubCopilotError.remote(L10n.string("error.browserOpen"))
             }
             let credentials = try await githubClient.pollForCredentials(using: authorization)
-            try GitHubTokenStore.save(credentials)
+            try GitHubTokenStore.save(credentials, allowAuthenticationUI: true)
             githubCredentialCache.store(credentials)
-            await refresh()
+            hasCopilotCredentials = true
+            await refreshCopilot(updatesVisibleState: updatesVisibleState)
         } catch {
             lastError = error.localizedDescription
-            state = .error(error.localizedDescription)
+            if updatesVisibleState { state = .error(error.localizedDescription) }
         }
     }
 
@@ -381,20 +401,21 @@ final class UsageStore: ObservableObject {
         account = nil
         snapshot = nil
         try? FileManager.default.removeItem(at: AppSettings.snapshotURL)
-        state = .needsLogin
+        if selectedAgent == .codex { state = .needsLogin }
     }
 
     private func logoutCopilot() {
         do {
-            try GitHubTokenStore.delete()
+            try GitHubTokenStore.delete(allowAuthenticationUI: true)
             githubCredentialCache.clear()
+            hasCopilotCredentials = false
             copilotSnapshot = nil
             try? FileManager.default.removeItem(at: AppSettings.copilotSnapshotURL)
-            state = .needsLogin
+            if selectedAgent == .githubCopilot { state = .needsLogin }
             lastError = nil
         } catch {
             lastError = error.localizedDescription
-            state = .error(error.localizedDescription)
+            if selectedAgent == .githubCopilot { state = .error(error.localizedDescription) }
         }
     }
 
@@ -509,6 +530,14 @@ final class UsageStore: ObservableObject {
         account = snapshot?.account
         copilotSnapshot = load(CopilotUsageSnapshot.self, from: AppSettings.copilotSnapshotURL)
         if cachedSnapshotExists(for: selectedAgent) { state = .stale }
+    }
+
+    private func loadGitHubCredentialStatus() {
+        do {
+            hasCopilotCredentials = try githubCredentialCache.load() != nil
+        } catch {
+            hasCopilotCredentials = false
+        }
     }
 
     private func load<T: Decodable>(_ type: T.Type, from url: URL) -> T? {

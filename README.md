@@ -2,7 +2,7 @@
 
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-111111?logo=apple)
 ![Swift 5.9](https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white)
-![Version](https://img.shields.io/badge/version-v1.4.0-0A84FF)
+![Version](https://img.shields.io/badge/version-v1.4.1-0A84FF)
 ![License](https://img.shields.io/badge/license-MIT-34C759)
 
 <p align="center">
@@ -20,7 +20,7 @@ AI Usage MB (AI Usage Menu Bar) is a native macOS menu-bar utility for monitorin
 - Codex token usage by model for the last 30 days, split into input, output, and cache tokens.
 - Automatic refresh, stale-data handling, independent usage thresholds, and reset-expiry notifications.
 - Adaptive popover height, capped at two thirds of the current screen before scrolling.
-- Agent picker in the main panel with separate Account and General settings tabs.
+- Agent picker in the main panel with separate Accounts and General settings tabs.
 - GitHub Copilot personal billing usage, AI credits, and per-model breakdown when GitHub provides them.
 - Spanish, Catalan, and English localization.
 - Universal binary for Apple Silicon and Intel Macs.
@@ -98,7 +98,7 @@ Scripts/                 Packaging, signing, and notarization helpers
 
 ## Release
 
-The current release is **v1.4.0**. Version tags matching `v*` run the test suite, build the universal app, and publish the ZIP through GitHub Actions. The Homebrew cask is maintained separately in `~/Documents/homebrew-tap`.
+The current release is **v1.4.1**. Version tags matching `v*` run the test suite, build the universal app, and publish the ZIP through GitHub Actions. The Homebrew cask is maintained separately in `~/Documents/homebrew-tap`.
 
 ## License
 

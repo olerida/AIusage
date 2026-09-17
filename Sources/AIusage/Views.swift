@@ -975,22 +975,22 @@ struct SettingsView: View {
 
     private var agentTab: some View {
         Form {
-            if store.selectedAgent == .codex {
-                Section(L10n.string("settings.section.codex")) {
-                    HStack {
-                        TextField(L10n.string("settings.path"), text: $codexPath)
-                            .textFieldStyle(.roundedBorder)
-                        Button(L10n.string("action.choose")) { chooseCodex() }
-                    }
-                    Button(L10n.string("settings.savePath")) {
-                        Task { await store.setCodexPath(codexPath) }
-                    }
-                    .disabled(codexPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            Section(L10n.string("settings.section.codex")) {
+                HStack {
+                    TextField(L10n.string("settings.path"), text: $codexPath)
+                        .textFieldStyle(.roundedBorder)
+                    Button(L10n.string("action.choose")) { chooseCodex() }
                 }
+                Button(L10n.string("settings.savePath")) {
+                    Task { await store.setCodexPath(codexPath) }
+                }
+                .disabled(codexPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                codexAccountControls
             }
 
-            Section(L10n.string("settings.section.account")) {
-                accountControls
+            Section(L10n.string("settings.section.githubCopilot")) {
+                copilotAccountControls
             }
 
             if let error = store.lastError, !error.isEmpty {
@@ -1005,48 +1005,52 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
-    private var accountControls: some View {
-        switch store.selectedAgent {
-        case .codex:
-            if let account = store.account {
-                LabeledContent(L10n.string("settings.account")) {
-                    Text(account.email ?? L10n.string("settings.chatgptAccount"))
-                }
-                Button(L10n.string("action.logout")) { Task { await store.logout() } }
-            } else {
-                Button(L10n.string("settings.login.codex")) { Task { await store.login() } }
+    private var codexAccountControls: some View {
+        if let account = store.account {
+            LabeledContent(L10n.string("settings.account")) {
+                Text(account.email ?? L10n.string("settings.chatgptAccount"))
             }
-        case .githubCopilot:
-            if store.state != .needsLogin, let account = store.copilotSnapshot?.account {
-                LabeledContent(L10n.string("settings.account")) {
-                    Text("@\(account.login)")
-                }
-                Button(L10n.string("action.logout")) { Task { await store.logout() } }
-            } else if let authorization = store.copilotDeviceAuthorization {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(L10n.string("settings.copilot.enterCode"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    HStack {
-                        Text(authorization.userCode)
-                            .font(.system(.title3, design: .monospaced, weight: .semibold))
-                            .textSelection(.enabled)
-                        Spacer()
-                        Button(L10n.string("action.copy")) { copy(authorization.userCode) }
-                        Button(L10n.string("action.openGitHub")) {
-                            NSWorkspace.shared.open(authorization.verificationURI)
-                        }
-                    }
-                    ProgressView()
-                        .controlSize(.small)
-                }
-            } else {
-                Text(L10n.string("settings.copilot.loginHelp"))
+            Button(L10n.string("action.logout")) { Task { await store.logout(.codex) } }
+        } else {
+            Button(L10n.string("settings.login.codex")) { Task { await store.login(.codex) } }
+        }
+    }
+
+    @ViewBuilder
+    private var copilotAccountControls: some View {
+        if let authorization = store.copilotDeviceAuthorization {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(L10n.string("settings.copilot.enterCode"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Button(L10n.string("settings.login.github")) { Task { await store.login() } }
-                    .disabled(store.isAuthenticatingCopilot)
+                HStack {
+                    Text(authorization.userCode)
+                        .font(.system(.title3, design: .monospaced, weight: .semibold))
+                        .textSelection(.enabled)
+                    Spacer()
+                    Button(L10n.string("action.copy")) { copy(authorization.userCode) }
+                    Button(L10n.string("action.openGitHub")) {
+                        NSWorkspace.shared.open(authorization.verificationURI)
+                    }
+                }
+                ProgressView()
+                    .controlSize(.small)
             }
+        } else if store.hasCopilotCredentials {
+            LabeledContent(L10n.string("settings.account")) {
+                if let account = store.copilotSnapshot?.account {
+                    Text("@\(account.login)")
+                } else {
+                    Text(L10n.string("settings.githubAccount"))
+                }
+            }
+            Button(L10n.string("action.logout")) { Task { await store.logout(.githubCopilot) } }
+        } else {
+            Text(L10n.string("settings.copilot.loginHelp"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Button(L10n.string("settings.login.github")) { Task { await store.login(.githubCopilot) } }
+                .disabled(store.isAuthenticatingCopilot)
         }
     }
 
@@ -1168,7 +1172,7 @@ struct AboutView: View {
     let onClose: () -> Void
 
     private var version: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.4.0"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.4.1"
     }
 
     var body: some View {
